@@ -13,6 +13,8 @@ import os
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.client.session.aiohttp import AiohttpSession
 from dotenv import load_dotenv
+import sqlite3
+
 load_dotenv()
 
 TOKEN = os.environ.get('TOKEN')
@@ -35,6 +37,8 @@ async def main() -> None:
 
     # And the run events dispatching
     await dp.start_polling(bot)
+
+
 
 
 if __name__ == "__main__":

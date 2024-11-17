@@ -4,9 +4,11 @@ from callback_data.callback_logic import *
 from bot_buttons.bot_buttons import *
 import re
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+import sqlite3
 
 hello_string = 'Hi, {}! welcome to NUR Lunch Bot! \nPlease select following options'
-lier_string = "{}, you are not commissioner! "
+lier_string = "{}, you are not administrator! "
+
 
 
 @dp.message(CommandStart())
