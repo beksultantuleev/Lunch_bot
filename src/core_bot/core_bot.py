@@ -25,7 +25,7 @@ link = 'https://t.me/NURlunchBot'
 # session = AiohttpSession(proxy=proxy_url)
 session = AiohttpSession()
 
-
+ADMINS = ["kazamabeks", "NUR_btuleev"]
 dp = Dispatcher()
 
 
@@ -37,6 +37,8 @@ async def main() -> None:
 
     # And the run events dispatching
     await dp.start_polling(bot)
+
+
 
 
 
