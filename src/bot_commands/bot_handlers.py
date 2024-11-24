@@ -18,8 +18,7 @@ async def handle_customer(callback_query: types.CallbackQuery):
 
 
 async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMContext):
-    current_date = datetime.datetime.now().strftime(
-        "%d-%m-%Y")  # Get current date in YYYY-MM-DD format
+    current_date = datetime.datetime.now().strftime(date_mask)  # Get current date in YYYY-MM-DD format
 
     try:
         with sqlite3.connect(database_location) as conn:
@@ -50,10 +49,7 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}")
     await callback_query.answer()
-    # await callback_query.message.answer(
-    #     "Select your lunch options:",
-    #     reply_markup=location_keyboard,
-    # )
+
 
 @dp.callback_query(OrderLunchState.selecting_lunch)
 async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
@@ -86,6 +82,7 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(OrderLunchState.confirming_order)
 async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
+    'there is table structure error. need to change customers order table'
     data = await state.get_data()
     item = data.get("selected_item")
     chat_id = callback_query.message.chat.id
@@ -98,58 +95,234 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
             with sqlite3.connect(database_location) as conn:
                 cursor = conn.cursor()
 
-                # Fetch the price of the selected lunch item
-                cursor.execute("SELECT price FROM Lunch WHERE items = ?", (item,))
-                lunch_price_row = cursor.fetchone()
+                # Fetch the existing row for this user and date
+                cursor.execute("""
+                    SELECT lunch_item, lunch_quantity, price_lunch, bakery_item, bakery_quantity, price_bakery, price_total
+                    FROM Customers_Order
+                    WHERE date = ? AND chat_id = ?
+                """, (current_date, chat_id))
+                existing_order = cursor.fetchone()
 
-                if lunch_price_row:
-                    lunch_price = lunch_price_row[0]
-                    total_price = lunch_price * quantity
+                if existing_order:
+                    # Unpack existing values
+                    existing_lunch_item, existing_lunch_quantity, existing_price_lunch, \
+                    existing_bakery_item, existing_bakery_quantity, existing_price_bakery, \
+                    existing_price_total = existing_order
 
-                    # Check if an order for this user and date already exists
-                    cursor.execute("""
-                        SELECT lunch_quantity, price_lunch, price_total
-                        FROM Customers_Order
-                        WHERE date = ? AND chat_id = ?
-                    """, (current_date, chat_id))
-                    existing_order = cursor.fetchone()
+                    # Check if the item is a lunch or bakery item
+                    cursor.execute("SELECT price FROM Lunch WHERE items = ?", (item,))
+                    lunch_price_row = cursor.fetchone()
 
-                    if existing_order:
-                        # Update the existing order
-                        existing_quantity = existing_order[0]
-                        existing_price_lunch = existing_order[1]
-                        existing_total_price = existing_order[2]
+                    if lunch_price_row:  # It's a lunch item
+                        unit_price = lunch_price_row[0]
 
-                        new_quantity = existing_quantity + quantity
-                        new_price_lunch = existing_price_lunch + total_price
-                        new_total_price = existing_total_price + total_price
+                        if existing_lunch_item == item:  # Update the quantity and price if the item matches
+                            new_lunch_quantity = existing_lunch_quantity + quantity
+                            new_price_total = existing_price_total + unit_price * quantity
 
-                        cursor.execute("""
-                            UPDATE Customers_Order
-                            SET lunch_quantity = ?, price_lunch = ?, price_total = ?
-                            WHERE date = ? AND chat_id = ?
-                        """, (new_quantity, new_price_lunch, new_total_price, current_date, chat_id))
-                    else:
-                        # Insert a new order
+                            cursor.execute("""
+                                UPDATE Customers_Order
+                                SET lunch_quantity = ?, price_total = ?
+                                WHERE date = ? AND chat_id = ?
+                            """, (new_lunch_quantity, new_price_total, current_date, chat_id))
+                        else:  # Add a new lunch item
+                            new_price_total = existing_price_total + unit_price * quantity
+
+                            cursor.execute("""
+                                UPDATE Customers_Order
+                                SET lunch_item = ?, lunch_quantity = ?, price_lunch = ?, price_total = ?
+                                WHERE date = ? AND chat_id = ?
+                            """, (item, quantity, unit_price, new_price_total, current_date, chat_id))
+
+                    else:  # Check if it's a bakery item
+                        cursor.execute("SELECT price FROM Bakery WHERE items = ?", (item,))
+                        bakery_price_row = cursor.fetchone()
+
+                        if bakery_price_row:
+                            unit_price = bakery_price_row[0]
+
+                            if existing_bakery_item == item:  # Update the quantity and price if the item matches
+                                new_bakery_quantity = existing_bakery_quantity + quantity
+                                new_price_total = existing_price_total + unit_price * quantity
+
+                                cursor.execute("""
+                                    UPDATE Customers_Order
+                                    SET bakery_quantity = ?, price_total = ?
+                                    WHERE date = ? AND chat_id = ?
+                                """, (new_bakery_quantity, new_price_total, current_date, chat_id))
+                            else:  # Add a new bakery item
+                                new_price_total = existing_price_total + unit_price * quantity
+
+                                cursor.execute("""
+                                    UPDATE Customers_Order
+                                    SET bakery_item = ?, bakery_quantity = ?, price_bakery = ?, price_total = ?
+                                    WHERE date = ? AND chat_id = ?
+                                """, (item, quantity, unit_price, new_price_total, current_date, chat_id))
+                else:
+                    # Insert a new row for this user and date
+                    cursor.execute("SELECT price FROM Lunch WHERE items = ?", (item,))
+                    lunch_price_row = cursor.fetchone()
+
+                    if lunch_price_row:  # It's a lunch item
+                        unit_price = lunch_price_row[0]
                         cursor.execute("""
                             INSERT INTO Customers_Order (
                                 date, chat_id, username, lunch_item, lunch_quantity,
-                                bakery_item, bakery_quantity, price_lunch, price_bakery, price_total
+                                price_lunch, bakery_item, bakery_quantity, price_bakery, price_total
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (current_date, chat_id, username, item, quantity, None, 0, lunch_price, 0, total_price))
+                        """, (current_date, chat_id, username, item, quantity, unit_price, None, 0, 0, quantity * unit_price))
+                    else:  # It's a bakery item
+                        cursor.execute("SELECT price FROM Bakery WHERE items = ?", (item,))
+                        bakery_price_row = cursor.fetchone()
 
-                    conn.commit()
-                    await callback_query.message.edit_text(f"✅ {quantity}x {item} has been added to your basket.", reply_markup=main_menu_customer_keyboard)
-                else:
-                    await callback_query.message.edit_text(f"❌ Failed to add {item} to your basket. Item not found.", reply_markup=main_menu_customer_keyboard)
+                        if bakery_price_row:
+                            unit_price = bakery_price_row[0]
+                            cursor.execute("""
+                                INSERT INTO Customers_Order (
+                                    date, chat_id, username, lunch_item, lunch_quantity,
+                                    price_lunch, bakery_item, bakery_quantity, price_bakery, price_total
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (current_date, chat_id, username, None, 0, 0, item, quantity, unit_price, quantity * unit_price))
 
+                conn.commit()
+                await callback_query.message.edit_text(f"✅ {quantity}x {item} has been added to your basket.", reply_markup=main_menu_customer_keyboard)
         except sqlite3.Error as e:
-            await callback_query.message.edit_text(f"❌ Database error: {e}", reply_markup=main_menu_customer_keyboard)
+            await callback_query.message.edit_text(f"❌ Database error: {e}")
 
     elif callback_query.data == "cancel":
         await callback_query.message.edit_text("Order canceled.", reply_markup=main_menu_customer_keyboard)
 
     await state.clear()
+    await callback_query.answer()
+
+
+@dp.callback_query(lambda c: c.data == "my_basket")
+async def handle_my_basket(callback_query: CallbackQuery, state: FSMContext):
+    chat_id = callback_query.message.chat.id
+    current_date = datetime.datetime.now().strftime(date_mask)
+
+    try:
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+            
+            # Fetch all distinct lunch items
+            cursor.execute("""
+                SELECT lunch_item, lunch_quantity, price_lunch
+                FROM Customers_Order
+                WHERE date = ? AND chat_id = ? AND lunch_item IS NOT NULL
+            """, (current_date, chat_id))
+            lunch_orders = cursor.fetchall()
+
+            # Fetch all distinct bakery items
+            cursor.execute("""
+                SELECT bakery_item, bakery_quantity, price_bakery
+                FROM Customers_Order
+                WHERE date = ? AND chat_id = ? AND bakery_item IS NOT NULL
+            """, (current_date, chat_id))
+            bakery_orders = cursor.fetchall()
+
+        # Initialize inline keyboard and total price
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+        total_price = 0
+
+        # Add lunch items with delete buttons
+        for lunch_item, lunch_quantity, price_lunch in lunch_orders:
+            if lunch_item and lunch_quantity > 0:
+                keyboard.inline_keyboard.append([
+                    InlineKeyboardButton(
+                        text=f"{lunch_item} x{lunch_quantity} ({price_lunch} KGS)",
+                        callback_data="noop"
+                    ),
+                    InlineKeyboardButton(
+                        text="❌", callback_data=f"delete_lunch_{lunch_item}"
+                    )
+                ])
+                total_price += price_lunch * lunch_quantity
+
+        # Add bakery items with delete buttons
+        for bakery_item, bakery_quantity, price_bakery in bakery_orders:
+            if bakery_item and bakery_quantity > 0:
+                keyboard.inline_keyboard.append([
+                    InlineKeyboardButton(
+                        text=f"{bakery_item} x{bakery_quantity} ({price_bakery} KGS)",
+                        callback_data="noop"
+                    ),
+                    InlineKeyboardButton(
+                        text="❌", callback_data=f"delete_bakery_{bakery_item}"
+                    )
+                ])
+                total_price += price_bakery * bakery_quantity
+
+        # Add total price display
+        keyboard.inline_keyboard.append([
+            InlineKeyboardButton(
+                text=f"Total: {total_price} KGS",
+                callback_data="noop"
+            )
+        ])
+
+        # Add main menu button
+        keyboard.inline_keyboard.append([
+            InlineKeyboardButton(text="🔙 Main Menu", callback_data="return_main_menu")
+        ])
+
+        # Display the basket
+        if total_price > 0:
+            await callback_query.message.edit_text(
+                f"🛒 Your basket for {current_date}:",
+                reply_markup=keyboard
+            )
+            await state.set_state(BasketState.viewing_basket)
+        else:
+            await callback_query.message.edit_text("🛒 Your basket is empty for today.",reply_markup=main_menu_customer_keyboard)
+
+    except sqlite3.Error as e:
+        await callback_query.message.edit_text(f"❌ Database error: {e}")
+
+    await callback_query.answer()
+
+
+@dp.callback_query(BasketState.viewing_basket)
+async def update_basket(callback_query: CallbackQuery, state: FSMContext):
+    data = callback_query.data
+    chat_id = callback_query.message.chat.id
+    current_date = datetime.datetime.now().strftime(date_mask)
+
+    if data == "return_main_menu":
+        await state.clear()
+        await callback_query.message.edit_text("🔙 Returning to the main menu.", reply_markup=main_menu_customer_keyboard)
+        return
+
+    if data.startswith("delete_lunch_"):
+        item = data.split("_", 2)[2]  # Extract the lunch item
+        try:
+            with sqlite3.connect(database_location) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    DELETE FROM Customers_Order
+                    WHERE date = ? AND chat_id = ? AND lunch_item = ?
+                """, (current_date, chat_id, item))
+                conn.commit()
+
+            await handle_my_basket(callback_query, state)
+        except sqlite3.Error as e:
+            await callback_query.message.edit_text(f"❌ Database error: {e}")
+
+    elif data.startswith("delete_bakery_"):
+        item = data.split("_", 2)[2]  # Extract the bakery item
+        try:
+            with sqlite3.connect(database_location) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    DELETE FROM Customers_Order
+                    WHERE date = ? AND chat_id = ? AND bakery_item = ?
+                """, (current_date, chat_id, item))
+                conn.commit()
+
+            await handle_my_basket(callback_query, state)
+        except sqlite3.Error as e:
+            await callback_query.message.edit_text(f"❌ Database error: {e}")
+
     await callback_query.answer()
 
 

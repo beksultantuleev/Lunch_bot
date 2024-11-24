@@ -32,8 +32,7 @@ CUSTOMER_ACTIONS = {
     Actions.CUSTOMER: {'handler': handle_customer, 'state': False},
     Actions.order_lunch_action: {'handler': handle_order_lunch, 'state': True},
     Actions.order_additional_stuff_action: {'handler': handle_order_additional_stuff, 'state': False},
-    # Add more admin-specific actions here
-    # "other_admin_action": other_admin_action,
+    Actions.my_basket_action: {'handler': handle_my_basket, 'state': True},
 }
 
 ADMIN_ACTIONS = {

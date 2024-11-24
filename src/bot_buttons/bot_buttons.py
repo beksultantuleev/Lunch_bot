@@ -12,7 +12,7 @@ class Actions:
 
     order_lunch_action = 'order_lunch_action'
     order_additional_stuff_action = 'order_additional_stuff_action'
-    my_orders_action = 'my_orders_action'
+    my_basket_action = 'my_orders_action'
     leave_review_action = 'leave_review_action'
     lunch_rating_list_action = 'lunch_rating_list_action'
     rate_your_lunch_action = 'rate_your_lunch_action'
@@ -44,7 +44,7 @@ order_lunch_btn = InlineKeyboardButton(
 order_additional_stuff_btn = InlineKeyboardButton(
     text="Order baked goodies", callback_data=StartCallbackData(action=Actions.order_additional_stuff_action).pack())
 my_orders_btn = InlineKeyboardButton(
-    text="My orders", callback_data=StartCallbackData(action=Actions.my_orders_action).pack())
+    text="My orders", callback_data=StartCallbackData(action=Actions.my_basket_action).pack())
 
 lunch_rating_list_btn = InlineKeyboardButton(
     text="Lunch rating list", callback_data=StartCallbackData(action=Actions.lunch_rating_list_action).pack())
