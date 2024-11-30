@@ -31,17 +31,25 @@ CREATE TABLE IF NOT EXISTS Customers_Order (
     date DATE NOT NULL,
     chat_id INTEGER NOT NULL,
     username TEXT,
-    lunch_item TEXT,
-    lunch_quantity INTEGER DEFAULT 0,
-    bakery_item TEXT,
-    bakery_quantity INTEGER DEFAULT 0,
-    price_lunch REAL NOT NULL,
-    price_bakery REAL NOT NULL,
-    price_total REAL NOT NULL,
+    ordered_item TEXT NOT NULL,
+    additional_info TEXT,
+    ordered_quantity INTEGER DEFAULT 0,
+    unit_price REAL NOT NULL,
+    total_price REAL NOT NULL,
     is_paid INTEGER DEFAULT 0, -- 0 for unpaid, 1 for paid
-    PRIMARY KEY (date, chat_id),
-    FOREIGN KEY (lunch_item) REFERENCES Lunch(items),
-    FOREIGN KEY (bakery_item) REFERENCES Bakery(items)
+    PRIMARY KEY (date, chat_id, ordered_item),
+    FOREIGN KEY (ordered_item) REFERENCES Menu(items) -- Assuming a unified Menu table for lunch and bakery items
+)
+''')
+
+# Create Customers_Review table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS Customers_Review (
+    date DATE NOT NULL,
+    chat_id INTEGER NOT NULL,
+    username TEXT,
+    review TEXT,
+    PRIMARY KEY (date, chat_id)
 )
 ''')
 

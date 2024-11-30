@@ -20,19 +20,22 @@ def is_admin(username: str) -> bool:
 
 
 @dp.message(CommandStart())
-async def command_start_handler(message: Message) -> None:
+async def command_start_handler(message: Message, state: FSMContext) -> None:
     """
     This handler receives messages with `/start` command
     """
     # await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!")
     cutomers_full_name = message.from_user.full_name
+    await state.clear()
     await message.answer(hello_string.format(html.bold(cutomers_full_name)), reply_markup=start_keyboard)
+
 
 CUSTOMER_ACTIONS = {
     Actions.CUSTOMER: {'handler': handle_customer, 'state': False},
     Actions.order_lunch_action: {'handler': handle_order_lunch, 'state': True},
-    Actions.order_additional_stuff_action: {'handler': handle_order_additional_stuff, 'state': False},
     Actions.my_basket_action: {'handler': handle_my_basket, 'state': True},
+    Actions.leave_review_action: {'handler': handle_review, 'state': True},
+    Actions.order_additional_stuff_action: {'handler': handle_order_additional_stuff, 'state': False},
 }
 
 ADMIN_ACTIONS = {
@@ -44,8 +47,9 @@ ADMIN_ACTIONS = {
     # "other_admin_action": other_admin_action,
 }
 
-'i need to add state as args'
 
+# Register message handler
+# dp.message.register(save_comment, StateFilter(OrderLunchState.waiting_for_comment))
 
 @dp.callback_query(StartCallbackData.filter())
 async def start_callback_handler(callback_query: types.CallbackQuery, callback_data: StartCallbackData, state: FSMContext):

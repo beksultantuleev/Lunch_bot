@@ -4,7 +4,8 @@ conn = sqlite3.connect("database/app_database.db")
 cursor = conn.cursor()
 
 # Corrected SQL query
-cursor.execute("SELECT * FROM Customers_Order")
+# cursor.execute("SELECT * FROM Customers_Order")
+cursor.execute("SELECT * FROM Customers_Review")
 rows = cursor.fetchall()
 
 # Print all rows

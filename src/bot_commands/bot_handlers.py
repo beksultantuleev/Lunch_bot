@@ -16,27 +16,31 @@ async def handle_customer(callback_query: types.CallbackQuery):
         "Select your actions:", reply_markup=main_menu_customer_keyboard
     )
 
-
+##########################ORDER
 async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMContext):
-    current_date = datetime.datetime.now().strftime(date_mask)  # Get current date in YYYY-MM-DD format
+    current_date = datetime.datetime.now().strftime(
+        date_mask)  # Get current date in YYYY-MM-DD format
 
     try:
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT items, price FROM Lunch WHERE date = ?", (current_date,))
+            cursor.execute(
+                "SELECT items, price FROM Lunch WHERE date = ?", (current_date,))
             rows = cursor.fetchall()
 
         if rows:
             # Create dynamic lunch options
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text=f"{item} - {price} KGS", callback_data=f"select_{item}")]
+                    [InlineKeyboardButton(
+                        text=f"{item} - {price} KGS", callback_data=f"select_{item}")]
                     for item, price in rows
                 ]
             )
 
             # Add main menu button
-            keyboard.inline_keyboard.append([InlineKeyboardButton(text="🔙 Main Menu", callback_data="return_main_menu")])
+            keyboard.inline_keyboard.append([InlineKeyboardButton(
+                text="🔙 Main Menu", callback_data="return_main_menu")])
 
             await callback_query.message.edit_text(
                 f"🍴 Select your lunch option for {current_date}:",
@@ -49,7 +53,6 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}")
     await callback_query.answer()
-
 
 @dp.callback_query(OrderLunchState.selecting_lunch)
 async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
@@ -69,6 +72,7 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="✅ Yes", callback_data="confirm"),
+                # InlineKeyboardButton(text="✅ Specify comment and add", callback_data="confirm_with_comment"), #"confirm_with_comment"
                 InlineKeyboardButton(text="❌ Cancel", callback_data="cancel"),
             ]
         ]
@@ -82,7 +86,6 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(OrderLunchState.confirming_order)
 async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
-    'there is table structure error. need to change customers order table'
     data = await state.get_data()
     item = data.get("selected_item")
     chat_id = callback_query.message.chat.id
@@ -95,99 +98,63 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
             with sqlite3.connect(database_location) as conn:
                 cursor = conn.cursor()
 
-                # Fetch the existing row for this user and date
+                # Fetch the price of the item from the Menu table
+                cursor.execute(
+                    "SELECT price FROM Lunch WHERE items = ?", (item,))
+                price_row = cursor.fetchone()
+
+                if not price_row:
+                    await callback_query.message.edit_text(f"❌ Item '{item}' not found in the menu.")
+                    return
+
+                unit_price = price_row[0]
+
+                # Check if the item is already in the basket
                 cursor.execute("""
-                    SELECT lunch_item, lunch_quantity, price_lunch, bakery_item, bakery_quantity, price_bakery, price_total
+                    SELECT ordered_quantity, total_price
                     FROM Customers_Order
-                    WHERE date = ? AND chat_id = ?
-                """, (current_date, chat_id))
+                    WHERE date = ? AND chat_id = ? AND ordered_item = ?
+                """, (current_date, chat_id, item))
                 existing_order = cursor.fetchone()
 
                 if existing_order:
-                    # Unpack existing values
-                    existing_lunch_item, existing_lunch_quantity, existing_price_lunch, \
-                    existing_bakery_item, existing_bakery_quantity, existing_price_bakery, \
-                    existing_price_total = existing_order
+                    # Update quantity and total price
+                    existing_quantity, existing_total = existing_order
+                    new_quantity = existing_quantity + quantity
+                    new_total = new_quantity * unit_price
 
-                    # Check if the item is a lunch or bakery item
-                    cursor.execute("SELECT price FROM Lunch WHERE items = ?", (item,))
-                    lunch_price_row = cursor.fetchone()
-
-                    if lunch_price_row:  # It's a lunch item
-                        unit_price = lunch_price_row[0]
-
-                        if existing_lunch_item == item:  # Update the quantity and price if the item matches
-                            new_lunch_quantity = existing_lunch_quantity + quantity
-                            new_price_total = existing_price_total + unit_price * quantity
-
-                            cursor.execute("""
-                                UPDATE Customers_Order
-                                SET lunch_quantity = ?, price_total = ?
-                                WHERE date = ? AND chat_id = ?
-                            """, (new_lunch_quantity, new_price_total, current_date, chat_id))
-                        else:  # Add a new lunch item
-                            new_price_total = existing_price_total + unit_price * quantity
-
-                            cursor.execute("""
-                                UPDATE Customers_Order
-                                SET lunch_item = ?, lunch_quantity = ?, price_lunch = ?, price_total = ?
-                                WHERE date = ? AND chat_id = ?
-                            """, (item, quantity, unit_price, new_price_total, current_date, chat_id))
-
-                    else:  # Check if it's a bakery item
-                        cursor.execute("SELECT price FROM Bakery WHERE items = ?", (item,))
-                        bakery_price_row = cursor.fetchone()
-
-                        if bakery_price_row:
-                            unit_price = bakery_price_row[0]
-
-                            if existing_bakery_item == item:  # Update the quantity and price if the item matches
-                                new_bakery_quantity = existing_bakery_quantity + quantity
-                                new_price_total = existing_price_total + unit_price * quantity
-
-                                cursor.execute("""
-                                    UPDATE Customers_Order
-                                    SET bakery_quantity = ?, price_total = ?
-                                    WHERE date = ? AND chat_id = ?
-                                """, (new_bakery_quantity, new_price_total, current_date, chat_id))
-                            else:  # Add a new bakery item
-                                new_price_total = existing_price_total + unit_price * quantity
-
-                                cursor.execute("""
-                                    UPDATE Customers_Order
-                                    SET bakery_item = ?, bakery_quantity = ?, price_bakery = ?, price_total = ?
-                                    WHERE date = ? AND chat_id = ?
-                                """, (item, quantity, unit_price, new_price_total, current_date, chat_id))
+                    cursor.execute("""
+                        UPDATE Customers_Order
+                        SET ordered_quantity = ?, total_price = ?
+                        WHERE date = ? AND chat_id = ? AND ordered_item = ?
+                    """, (new_quantity, new_total, current_date, chat_id, item))
                 else:
-                    # Insert a new row for this user and date
-                    cursor.execute("SELECT price FROM Lunch WHERE items = ?", (item,))
-                    lunch_price_row = cursor.fetchone()
+                    # Insert new row for the item
+                    total_price = quantity * unit_price
 
-                    if lunch_price_row:  # It's a lunch item
-                        unit_price = lunch_price_row[0]
-                        cursor.execute("""
-                            INSERT INTO Customers_Order (
-                                date, chat_id, username, lunch_item, lunch_quantity,
-                                price_lunch, bakery_item, bakery_quantity, price_bakery, price_total
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (current_date, chat_id, username, item, quantity, unit_price, None, 0, 0, quantity * unit_price))
-                    else:  # It's a bakery item
-                        cursor.execute("SELECT price FROM Bakery WHERE items = ?", (item,))
-                        bakery_price_row = cursor.fetchone()
-
-                        if bakery_price_row:
-                            unit_price = bakery_price_row[0]
-                            cursor.execute("""
-                                INSERT INTO Customers_Order (
-                                    date, chat_id, username, lunch_item, lunch_quantity,
-                                    price_lunch, bakery_item, bakery_quantity, price_bakery, price_total
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (current_date, chat_id, username, None, 0, 0, item, quantity, unit_price, quantity * unit_price))
+                    cursor.execute("""
+                        INSERT INTO Customers_Order (
+                            date, chat_id, username, ordered_item,
+                            ordered_quantity, unit_price, total_price
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (current_date, chat_id, username, item, quantity, unit_price, total_price))
 
                 conn.commit()
+
                 await callback_query.message.edit_text(f"✅ {quantity}x {item} has been added to your basket.", reply_markup=main_menu_customer_keyboard)
         except sqlite3.Error as e:
             await callback_query.message.edit_text(f"❌ Database error: {e}")
+
+    # elif callback_query.data == "confirm_with_comment":
+    #     # Clear any previous state to avoid conflicts
+    #     # await state.clear()
+
+    #     # Prompt the user for a comment
+    #     await callback_query.message.edit_text(f"Please type your comment for {item}:")
+        
+    #     # Set the state to waiting for a comment
+    #     await state.set_state(OrderLunchState.waiting_for_comment)
+    #     await callback_query.answer()
 
     elif callback_query.data == "cancel":
         await callback_query.message.edit_text("Order canceled.", reply_markup=main_menu_customer_keyboard)
@@ -196,134 +163,185 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
 
 
-@dp.callback_query(lambda c: c.data == "my_basket")
-async def handle_my_basket(callback_query: CallbackQuery, state: FSMContext):
-    chat_id = callback_query.message.chat.id
-    current_date = datetime.datetime.now().strftime(date_mask)
+# async def save_comment(message: Message, state: FSMContext):
+    # Not working
+#     print('in comment')
+#     review = message.text
+#     print(f'this is review: {review}')
+#     chat_id = message.chat.id
+#     username = message.chat.username
+#     await state.clear()
 
+# # Register the handlers explicitly
+# dp.callback_query.register(add_to_basket, StateFilter(OrderLunchState.confirming_order))
+# dp.message.register(save_comment, StateFilter(OrderLunchState.waiting_for_comment))
+
+############################
+
+
+############################BASKET
+
+async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContext): 
+    current_date = datetime.datetime.now().strftime(
+        date_mask)  # Get current date in YYYY-MM-DD format
+    chat_id = callback_query.message.chat.id
     try:
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
-            
-            # Fetch all distinct lunch items
-            cursor.execute("""
-                SELECT lunch_item, lunch_quantity, price_lunch
-                FROM Customers_Order
-                WHERE date = ? AND chat_id = ? AND lunch_item IS NOT NULL
-            """, (current_date, chat_id))
-            lunch_orders = cursor.fetchall()
+            cursor.execute(
+                "SELECT ordered_item, ordered_quantity, total_price FROM Customers_Order WHERE date = ? AND chat_id = ?", (current_date, chat_id))
+            rows = cursor.fetchall()
+            if rows:
 
-            # Fetch all distinct bakery items
-            cursor.execute("""
-                SELECT bakery_item, bakery_quantity, price_bakery
-                FROM Customers_Order
-                WHERE date = ? AND chat_id = ? AND bakery_item IS NOT NULL
-            """, (current_date, chat_id))
-            bakery_orders = cursor.fetchall()
-
-        # Initialize inline keyboard and total price
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
-        total_price = 0
-
-        # Add lunch items with delete buttons
-        for lunch_item, lunch_quantity, price_lunch in lunch_orders:
-            if lunch_item and lunch_quantity > 0:
-                keyboard.inline_keyboard.append([
-                    InlineKeyboardButton(
-                        text=f"{lunch_item} x{lunch_quantity} ({price_lunch} KGS)",
-                        callback_data="noop"
-                    ),
-                    InlineKeyboardButton(
-                        text="❌", callback_data=f"delete_lunch_{lunch_item}"
-                    )
+                # for row in rows:
+                #     print(row)
+                # Create dynamic lunch options
+                # keyboard = InlineKeyboardMarkup(
+                #     inline_keyboard=[
+                #         [InlineKeyboardButton(
+                #             text=f"{qnt} x {item} - {price} KGS", callback_data=f"select_{item}")]
+                #         for item, qnt, price in rows
+                #     ]
+                # )
+                total_price = 0
+                for row in rows:
+                    total_price += row[2]
+                    print(row)
+                print(f'this is total price: {total_price}')
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=f"{qnt} x {item} - {price} KGS", callback_data=f"select_{item}"
+                        ),
+                        InlineKeyboardButton(
+                            text="❌", callback_data=f"delete_{item}"
+                        )
+                    ]
+                    for item, qnt, price in rows
                 ])
-                total_price += price_lunch * lunch_quantity
+                keyboard.inline_keyboard.append([InlineKeyboardButton(
+                    text=f"Total: {total_price} KGS", callback_data="noop")])
+                keyboard.inline_keyboard.append([InlineKeyboardButton(
+                    text="🔙 Main Menu", callback_data="return_main_menu")])
+                await callback_query.message.edit_text(
+                    f"🍴 you basket for {current_date}:",
+                    reply_markup=keyboard
+                )
+                await state.set_state(BasketState.viewing_basket)
+            else:
+                await callback_query.message.edit_text(f"⚠️ your basket is empty for {current_date}.", reply_markup=main_menu_customer_keyboard)
+                await callback_query.answer()
+                await state.clear()
 
-        # Add bakery items with delete buttons
-        for bakery_item, bakery_quantity, price_bakery in bakery_orders:
-            if bakery_item and bakery_quantity > 0:
-                keyboard.inline_keyboard.append([
-                    InlineKeyboardButton(
-                        text=f"{bakery_item} x{bakery_quantity} ({price_bakery} KGS)",
-                        callback_data="noop"
-                    ),
-                    InlineKeyboardButton(
-                        text="❌", callback_data=f"delete_bakery_{bakery_item}"
-                    )
-                ])
-                total_price += price_bakery * bakery_quantity
-
-        # Add total price display
-        keyboard.inline_keyboard.append([
-            InlineKeyboardButton(
-                text=f"Total: {total_price} KGS",
-                callback_data="noop"
-            )
-        ])
-
-        # Add main menu button
-        keyboard.inline_keyboard.append([
-            InlineKeyboardButton(text="🔙 Main Menu", callback_data="return_main_menu")
-        ])
-
-        # Display the basket
-        if total_price > 0:
-            await callback_query.message.edit_text(
-                f"🛒 Your basket for {current_date}:",
-                reply_markup=keyboard
-            )
-            await state.set_state(BasketState.viewing_basket)
-        else:
-            await callback_query.message.edit_text("🛒 Your basket is empty for today.",reply_markup=main_menu_customer_keyboard)
-
+                
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}")
-
+        await state.clear()
     await callback_query.answer()
 
 
 @dp.callback_query(BasketState.viewing_basket)
 async def update_basket(callback_query: CallbackQuery, state: FSMContext):
     data = callback_query.data
+    # user_data = await state.get_data()
+    current_date = datetime.datetime.now().strftime(
+        date_mask)  # Get current date in YYYY-MM-DD format
     chat_id = callback_query.message.chat.id
-    current_date = datetime.datetime.now().strftime(date_mask)
 
     if data == "return_main_menu":
         await state.clear()
-        await callback_query.message.edit_text("🔙 Returning to the main menu.", reply_markup=main_menu_customer_keyboard)
+        await callback_query.message.edit_text(
+            "🔙 Back to the main menu. Choose an option:",
+            reply_markup=main_menu_customer_keyboard
+        )
         return
+    
+    if data.startswith("delete_"):
+        item_name = data.split("_", 1)[1]
+        print(f'this is item name: {item_name}\nchat_Id: {chat_id}\ndate: {current_date}')
 
-    if data.startswith("delete_lunch_"):
-        item = data.split("_", 2)[2]  # Extract the lunch item
         try:
             with sqlite3.connect(database_location) as conn:
                 cursor = conn.cursor()
+
+                # Delete the item from the basket
                 cursor.execute("""
                     DELETE FROM Customers_Order
-                    WHERE date = ? AND chat_id = ? AND lunch_item = ?
-                """, (current_date, chat_id, item))
-                conn.commit()
+                    WHERE date = ? AND chat_id = ? AND ordered_item = ?
+                """, (current_date, chat_id, item_name))
 
+                conn.commit()
+            await callback_query.answer("Item deleted from basket.")
+            # Refresh the basket view
             await handle_my_basket(callback_query, state)
+
+
         except sqlite3.Error as e:
             await callback_query.message.edit_text(f"❌ Database error: {e}")
+            await state.clear()
 
-    elif data.startswith("delete_bakery_"):
-        item = data.split("_", 2)[2]  # Extract the bakery item
-        try:
-            with sqlite3.connect(database_location) as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    DELETE FROM Customers_Order
-                    WHERE date = ? AND chat_id = ? AND bakery_item = ?
-                """, (current_date, chat_id, item))
-                conn.commit()
+    # await callback_query.answer()
+    # await state.clear()
 
-            await handle_my_basket(callback_query, state)
-        except sqlite3.Error as e:
-            await callback_query.message.edit_text(f"❌ Database error: {e}")
+############################
 
+
+############################Comment
+async def handle_review(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.edit_text("Please type your review:")
+    
+    # Set state to waiting for the review
+    await state.set_state(ReviewState.waiting_for_review)
     await callback_query.answer()
+
+
+async def save_review(message: Message, state: FSMContext):
+    current_date = datetime.datetime.now().strftime(date_mask)  # Current date in YYYY-MM-DD format
+    review = message.text
+    chat_id = message.chat.id
+    username = message.chat.username
+
+    try:
+        # Insert or append the review into the database
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+            
+            # Check if a review already exists for this date and chat_id
+            cursor.execute("""
+                SELECT review FROM Customers_Review WHERE date = ? AND chat_id = ?
+            """, (current_date, chat_id))
+            existing_review = cursor.fetchone()
+
+            if existing_review:
+                # Append the new review to the existing one
+                updated_review = existing_review[0] + ". " + review
+                cursor.execute("""
+                    UPDATE Customers_Review
+                    SET review = ?
+                    WHERE date = ? AND chat_id = ?
+                """, (updated_review, current_date, chat_id))
+            else:
+                # Insert a new review
+                cursor.execute("""
+                    INSERT INTO Customers_Review (date, chat_id, username, review)
+                    VALUES (?, ?, ?, ?)
+                """, (current_date, chat_id, username, review))
+            
+            conn.commit()
+
+        # Thank the user
+        await message.answer("Thank you for your review! 🙏", reply_markup=main_menu_customer_keyboard)
+    except sqlite3.Error as e:
+        await message.answer(f"❌ Failed to save your review. Error: {e}", reply_markup=main_menu_customer_keyboard)
+
+    # Clear the state
+    await state.clear()
+
+# Register the review handlers
+dp.callback_query.register(handle_review, StateFilter(ReviewState.waiting_for_review))
+dp.message.register(save_review, StateFilter(ReviewState.waiting_for_review))
+
+############################
 
 
 

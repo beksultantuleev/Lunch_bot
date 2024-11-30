@@ -14,6 +14,7 @@ class Actions:
     order_additional_stuff_action = 'order_additional_stuff_action'
     my_basket_action = 'my_orders_action'
     leave_review_action = 'leave_review_action'
+    leave_comment_action = 'leave_comment_action'
     lunch_rating_list_action = 'lunch_rating_list_action'
     rate_your_lunch_action = 'rate_your_lunch_action'
     administrator_action = 'administrator_action'

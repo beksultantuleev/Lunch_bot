@@ -40,9 +40,15 @@ class EditLunchMenuState(StatesGroup):
 class OrderLunchState(StatesGroup):
     selecting_lunch = State()
     confirming_order = State()
+    # adding_comment = State()
+    # waiting_for_comment = State()
+
 
 class BasketState(StatesGroup):
     viewing_basket = State()
+
+class ReviewState(StatesGroup):
+    waiting_for_review = State()
 
 async def main() -> None:
     # Initialize Bot instance with default bot properties which will be passed to all API calls
