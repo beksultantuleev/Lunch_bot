@@ -34,8 +34,9 @@ CUSTOMER_ACTIONS = {
     Actions.CUSTOMER: {'handler': handle_customer, 'state': False},
     Actions.order_lunch_action: {'handler': handle_order_lunch, 'state': True},
     Actions.my_basket_action: {'handler': handle_my_basket, 'state': True},
+    Actions.specify_additions_action: {'handler': handle_specify_additions, 'state': True},
+    Actions.order_bakery_action: {'handler': handle_order_additional_stuff, 'state': False},
     Actions.leave_review_action: {'handler': handle_review, 'state': True},
-    Actions.order_additional_stuff_action: {'handler': handle_order_additional_stuff, 'state': False},
 }
 
 ADMIN_ACTIONS = {

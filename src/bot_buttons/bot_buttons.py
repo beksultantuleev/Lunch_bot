@@ -11,7 +11,8 @@ class Actions:
     return_main_menu_action = 'main_menu'
 
     order_lunch_action = 'order_lunch_action'
-    order_additional_stuff_action = 'order_additional_stuff_action'
+    order_bakery_action = 'order_bakery_action'
+    specify_additions_action = 'specify_additions_action'
     my_basket_action = 'my_orders_action'
     leave_review_action = 'leave_review_action'
     leave_comment_action = 'leave_comment_action'
@@ -42,8 +43,11 @@ main_menu_button = InlineKeyboardButton(
 # CUSTOMERS options
 order_lunch_btn = InlineKeyboardButton(
     text="Order a lunch", callback_data=StartCallbackData(action=Actions.order_lunch_action).pack())
-order_additional_stuff_btn = InlineKeyboardButton(
-    text="Order baked goodies", callback_data=StartCallbackData(action=Actions.order_additional_stuff_action).pack())
+order_bakery_btn = InlineKeyboardButton(
+    text="Bakery", callback_data=StartCallbackData(action=Actions.order_bakery_action).pack())
+specify_additions_btn = InlineKeyboardButton(
+    text="Specify additions", callback_data=StartCallbackData(action=Actions.specify_additions_action).pack())
+
 my_orders_btn = InlineKeyboardButton(
     text="My orders", callback_data=StartCallbackData(action=Actions.my_basket_action).pack())
 
@@ -60,7 +64,8 @@ leave_review_btn = InlineKeyboardButton(
 
 # New inline keyboard with multiple buttons
 main_menu_customer_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [order_lunch_btn, order_additional_stuff_btn],
+    [order_lunch_btn, order_bakery_btn],
+    [specify_additions_btn],
     [my_orders_btn,],
     [lunch_rating_list_btn, rate_your_lunch_btn],
     [leave_review_btn,],

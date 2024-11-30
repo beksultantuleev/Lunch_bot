@@ -47,6 +47,12 @@ class OrderLunchState(StatesGroup):
 class BasketState(StatesGroup):
     viewing_basket = State()
 
+class AdditionsState(StatesGroup):
+    'garnier'
+    selecting_lunch = State()
+    waiting_for_addition = State()
+    # additions_to_specify = State()
+
 class ReviewState(StatesGroup):
     waiting_for_review = State()
 
