@@ -79,16 +79,16 @@ current_lunch_menu_btn = InlineKeyboardButton(
 current_bakery_menu_btn = InlineKeyboardButton(
     text="Current Bakery Menu", callback_data=StartCallbackData(action=Actions.current_bakekry_action).pack())
 
-edit_lunch_menu_btn = InlineKeyboardButton(
-    text="Edit Lunch Menu", callback_data=StartCallbackData(action=Actions.edit_lunch_menu_action).pack())
+reset_lunch_menu_btn = InlineKeyboardButton(
+    text="Reset Lunch Menu", callback_data=StartCallbackData(action=Actions.edit_lunch_menu_action).pack())
 
-edit_bakery_menu_btn = InlineKeyboardButton(
-    text="Edit Bakery Menu", callback_data=StartCallbackData(action=Actions.edit_bakekry_action).pack())
+reset_bakery_menu_btn = InlineKeyboardButton(
+    text="Reset Bakery Menu", callback_data=StartCallbackData(action=Actions.edit_bakekry_action).pack())
 
 
 main_menu_admin_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [current_lunch_menu_btn, current_bakery_menu_btn],
-    [edit_lunch_menu_btn, edit_bakery_menu_btn],
+    [reset_lunch_menu_btn, reset_bakery_menu_btn],
     [main_menu_button]
 ])
 

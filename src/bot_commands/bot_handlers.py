@@ -29,14 +29,29 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
             rows = cursor.fetchall()
 
         if rows:
+            # Define the maximum length for item text
+            MAX_TEXT_LENGTH = 15
+
             # Create dynamic lunch options
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(
-                        text=f"{item} - {price} KGS", callback_data=f"select_{item}")]
-                    for item, price in rows
+                    [
+                        InlineKeyboardButton(
+                            text=f"{row[0][:MAX_TEXT_LENGTH]}... - {row[1]} KGS" if len(row[0]) > MAX_TEXT_LENGTH else f"{row[0]} - {row[1]} KGS",
+                            callback_data=f"select_{row[0]}"
+                        )
+                    ]
+                    for row in rows
                 ]
             )
+            # # Create dynamic lunch options
+            # keyboard = InlineKeyboardMarkup(
+            #     inline_keyboard=[
+            #         [InlineKeyboardButton(
+            #             text=f"{item} - {price} KGS", callback_data=f"select_{item}")]
+            #         for item, price in rows
+            #     ]
+            # )
 
             # Add main menu button
             keyboard.inline_keyboard.append([InlineKeyboardButton(
@@ -163,23 +178,8 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
 
 
-# async def save_comment(message: Message, state: FSMContext):
-    # Not working
-#     print('in comment')
-#     review = message.text
-#     print(f'this is review: {review}')
-#     chat_id = message.chat.id
-#     username = message.chat.username
-#     await state.clear()
-
-# # Register the handlers explicitly
-# dp.callback_query.register(add_to_basket, StateFilter(OrderLunchState.confirming_order))
-# dp.message.register(save_comment, StateFilter(OrderLunchState.waiting_for_comment))
-
-############################
-
-
 ######################Additions
+'гарниры'
 async def handle_specify_additions(callback_query: types.CallbackQuery, state: FSMContext): 
     current_date = datetime.datetime.now().strftime(
         date_mask)  # Get current date in YYYY-MM-DD format
@@ -485,22 +485,24 @@ async def handle_editing_lunch_menu(callback_query: types.CallbackQuery, state: 
 
 
 @dp.message(EditLunchMenuState.waiting_for_menu_text)
-async def process_lunch_menu_input(message: types.Message, state: FSMContext):
+async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
     input_text = message.text.strip()
-    current_date = datetime.datetime.now().strftime("%d-%m-%Y")  # Get current date
-    menu_items = input_text.split("\n")
-    # conn = sqlite3.connect(database_location)
-    # cursor = conn.cursor()
-    with sqlite3.connect(database_location) as conn:
-        cursor = conn.cursor()
-        try:
-            # Insert each menu item into the database
+    current_date = datetime.datetime.now().strftime(date_mask)  # Get current date
+    menu_items = input_text.split("\n")  # Split by newlines
+
+    try:
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+
+            # Step 1: Delete the current menu for today
+            cursor.execute("DELETE FROM Lunch WHERE date = ?", (current_date,))
+
+            # Step 2: Insert the new menu items
             for item in menu_items:
                 item = item.strip()  # Clean up whitespace
                 if not item:
                     continue  # Skip empty lines
 
-                # Insert into the database
                 cursor.execute(
                     "INSERT INTO Lunch (date, items, price) VALUES (?, ?, ?)",
                     (current_date, item, FIXED_PRICE),
@@ -508,18 +510,22 @@ async def process_lunch_menu_input(message: types.Message, state: FSMContext):
 
             conn.commit()  # Commit all changes at once
 
-            await message.answer(f"✅ Menu added for {current_date}:\n" + "\n".join(f"- {item}" for item in menu_items), reply_markup=main_menu_admin_keyboard)
-        except sqlite3.IntegrityError as e:
-            await message.answer("❌ Some items already exist in the database.")
-        except Exception as e:
-            await message.answer(f"❌ An error occurred: {str(e)}")
-        finally:
-            await state.clear()
+            # Step 3: Notify the user
+            await message.answer(
+                f"✅ Menu reset for {current_date}:\n" + "\n".join(f"- {item}" for item in menu_items if item),
+                reply_markup=main_menu_admin_keyboard
+            )
+
+    except sqlite3.Error as e:
+        await message.answer(f"❌ Database error: {str(e)}")
+    except Exception as e:
+        await message.answer(f"❌ An unexpected error occurred: {str(e)}")
+    finally:
+        await state.clear()
 
 
 async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
-    current_date = datetime.datetime.now().strftime(
-        "%d-%m-%Y")  # Get current date in YYYY-MM-DD format
+    current_date = datetime.datetime.now().strftime(date_mask)  # Get current date in YYYY-MM-DD format
 
     try:
         with sqlite3.connect(database_location) as conn:
