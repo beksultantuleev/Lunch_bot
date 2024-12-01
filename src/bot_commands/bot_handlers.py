@@ -16,7 +16,7 @@ async def handle_customer(callback_query: types.CallbackQuery):
         "Select your actions:", reply_markup=main_menu_customer_keyboard
     )
 
-##########################ORDER
+##########################ORDER Lunch
 async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMContext):
     current_date = datetime.datetime.now().strftime(
         date_mask)  # Get current date in YYYY-MM-DD format
@@ -30,28 +30,21 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
 
         if rows:
             # Define the maximum length for item text
-            MAX_TEXT_LENGTH = 15
+            for row in rows:
+                print(row[0][:MAX_TEXT_LENGTH])
 
             # Create dynamic lunch options
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text=f"{row[0][:MAX_TEXT_LENGTH]}... - {row[1]} KGS" if len(row[0]) > MAX_TEXT_LENGTH else f"{row[0]} - {row[1]} KGS",
-                            callback_data=f"select_{row[0]}"
+                            text=f"{row[0][:MAX_TEXT_LENGTH]}..." if len(row[0]) > MAX_TEXT_LENGTH else f"{row[0]}",
+                            callback_data=f"select_{row[0][:MAX_TEXT_LENGTH]}"
                         )
                     ]
                     for row in rows
                 ]
             )
-            # # Create dynamic lunch options
-            # keyboard = InlineKeyboardMarkup(
-            #     inline_keyboard=[
-            #         [InlineKeyboardButton(
-            #             text=f"{item} - {price} KGS", callback_data=f"select_{item}")]
-            #         for item, price in rows
-            #     ]
-            # )
 
             # Add main menu button
             keyboard.inline_keyboard.append([InlineKeyboardButton(
@@ -115,7 +108,7 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
 
                 # Fetch the price of the item from the Menu table
                 cursor.execute(
-                    "SELECT price FROM Lunch WHERE items = ?", (item,))
+                    "SELECT price FROM Lunch WHERE items like ?", (f"{item}%",))
                 price_row = cursor.fetchone()
 
                 if not price_row:
@@ -191,17 +184,36 @@ async def handle_specify_additions(callback_query: types.CallbackQuery, state: F
                 "SELECT ordered_item, ordered_quantity, additional_info FROM Customers_Order WHERE date = ? AND chat_id = ?", (current_date, chat_id))
             rows = cursor.fetchall()
             if rows:
-                keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                    [
-                        InlineKeyboardButton(
-                            text=f"{qnt} x {item}", callback_data=f"select_{item}"
-                        ),
-                        InlineKeyboardButton(
-                            text="additions", callback_data=f"specify_additions_{item}"
-                        )
+                # keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                #     [
+                #         InlineKeyboardButton(
+                #             text=f"{qnt} x {item}", callback_data=f"select_{item}"
+                #         ),
+                #         InlineKeyboardButton(
+                #             text="additions", callback_data=f"specify_additions_{item}"
+                #         )
+                #     ]
+                #     for item, qnt, additions in rows
+                # ])
+                
+                for row in rows:
+                    print(row[0][:MAX_TEXT_LENGTH])
+
+                # Create dynamic lunch options
+                keyboard = InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text=f"{row[1]}x{row[0][:MAX_TEXT_LENGTH]}..." if len(row[0]) > MAX_TEXT_LENGTH else f"{row[0]}",
+                                callback_data=f"select_{row[0][:MAX_TEXT_LENGTH]}"
+                            ),
+                        #     InlineKeyboardButton(
+                        #     text="additions", callback_data=f"specify_additions_{row[0][:MAX_TEXT_LENGTH]}"
+                        # )
+                        ]
+                        for row in rows
                     ]
-                    for item, qnt, additions in rows
-                ])
+                )
                 keyboard.inline_keyboard.append([InlineKeyboardButton(
                     text="🔙 Main Menu", callback_data="return_main_menu")])
                 await callback_query.message.edit_text(
@@ -227,9 +239,10 @@ async def handle_addition_selection(callback_query: types.CallbackQuery, state: 
             reply_markup=main_menu_customer_keyboard
         )
         return
-    elif callback_query.data.startswith("specify_additions_"):
+    # elif callback_query.data.startswith("specify_additions_"):
+    elif callback_query.data.startswith("select_"):
         # Extract the item name
-        item_name = callback_query.data.split("specify_additions_", 1)[1]
+        item_name = callback_query.data.split("select_", 1)[1]
 
         # Save the item in the state
         await state.update_data(selected_item=item_name)
@@ -441,10 +454,153 @@ dp.message.register(save_review, StateFilter(ReviewState.waiting_for_review))
 ############################
 
 
+##################bakery
+async def handle_order_bakery(callback_query: types.CallbackQuery, state: FSMContext):
+    current_date = datetime.datetime.now().strftime(
+        date_mask)  # Get current date in YYYY-MM-DD format
 
-async def handle_order_additional_stuff(callback_query: types.CallbackQuery):
-    await callback_query.message.edit_text("You selected voice_action!")
+    try:
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT items, price FROM Bakery WHERE date = ?", (current_date,))
+            rows = cursor.fetchall()
 
+        if rows:
+            # Define the maximum length for item text
+            MAX_TEXT_LENGTH = 30
+            for row in rows:
+                print(row[0][:MAX_TEXT_LENGTH])
+
+            # Create dynamic lunch options
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text=f"{row[0][:MAX_TEXT_LENGTH]}..." if len(row[0]) > MAX_TEXT_LENGTH else f"{row[0]}",
+                            callback_data=f"select_{row[0][:MAX_TEXT_LENGTH]}"
+                        )
+                    ]
+                    for row in rows
+                ]
+            )
+
+            # Add main menu button
+            keyboard.inline_keyboard.append([InlineKeyboardButton(
+                text="🔙 Main Menu", callback_data="return_main_menu")])
+
+            await callback_query.message.edit_text(
+                f"🍴 Select your Bakery option for {current_date}:",
+                reply_markup=keyboard
+            )
+            await state.set_state(OrderBakeryState.selecting_bakery)
+        else:
+            await callback_query.message.edit_text(f"⚠️ No Bakery options available for {current_date}.")
+
+    except sqlite3.Error as e:
+        await callback_query.message.edit_text(f"❌ Database error: {e}")
+    await callback_query.answer()
+
+@dp.callback_query(OrderBakeryState.selecting_bakery)
+async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
+    if callback_query.data == "return_main_menu":
+        await state.clear()  # Clear the state before returning to the main menu
+        await callback_query.message.edit_text("🔙 Returning to the main menu.", reply_markup=main_menu_customer_keyboard)
+        return
+
+    # Process selected lunch item
+    item = callback_query.data.split("_", 1)[1]  # Extract the item name
+
+    # Store the selected item in the state
+    await state.update_data(selected_item=item)
+
+    # Ask for confirmation
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Yes", callback_data="confirm"),
+                # InlineKeyboardButton(text="✅ Specify comment and add", callback_data="confirm_with_comment"), #"confirm_with_comment"
+                InlineKeyboardButton(text="❌ Cancel", callback_data="cancel"),
+            ]
+        ]
+    )
+    await callback_query.message.edit_text(
+        f"Would you like to add {item} to your basket?",
+        reply_markup=keyboard
+    )
+    await state.set_state(OrderBakeryState.confirming_order)
+    await callback_query.answer()
+
+@dp.callback_query(OrderBakeryState.confirming_order)
+async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    item = data.get("selected_item")
+    chat_id = callback_query.message.chat.id
+    username = callback_query.message.chat.username
+    current_date = datetime.datetime.now().strftime(date_mask)
+    quantity = 1  # Default quantity for new orders
+
+    if callback_query.data == "confirm":
+        try:
+            with sqlite3.connect(database_location) as conn:
+                cursor = conn.cursor()
+
+                # Fetch the price of the item from the Menu table
+                cursor.execute(
+                    "SELECT price FROM Bakery WHERE items like ?", (f"{item}%",))
+                price_row = cursor.fetchone()
+
+                if not price_row:
+                    await callback_query.message.edit_text(f"❌ Item '{item}' not found in the menu.")
+                    return
+
+                unit_price = price_row[0]
+
+                # Check if the item is already in the basket
+                cursor.execute("""
+                    SELECT ordered_quantity, total_price
+                    FROM Customers_Order
+                    WHERE date = ? AND chat_id = ? AND ordered_item = ?
+                """, (current_date, chat_id, item))
+                existing_order = cursor.fetchone()
+
+                if existing_order:
+                    # Update quantity and total price
+                    existing_quantity, existing_total = existing_order
+                    new_quantity = existing_quantity + quantity
+                    new_total = new_quantity * unit_price
+
+                    cursor.execute("""
+                        UPDATE Customers_Order
+                        SET ordered_quantity = ?, total_price = ?
+                        WHERE date = ? AND chat_id = ? AND ordered_item = ?
+                    """, (new_quantity, new_total, current_date, chat_id, item))
+                else:
+                    # Insert new row for the item
+                    total_price = quantity * unit_price
+
+                    cursor.execute("""
+                        INSERT INTO Customers_Order (
+                            date, chat_id, username, ordered_item,
+                            ordered_quantity, unit_price, total_price
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (current_date, chat_id, username, item, quantity, unit_price, total_price))
+
+                conn.commit()
+
+                await callback_query.message.edit_text(f"✅ {quantity}x {item} has been added to your basket.", reply_markup=main_menu_customer_keyboard)
+        except sqlite3.Error as e:
+            await callback_query.message.edit_text(f"❌ Database error: {e}")
+
+
+    elif callback_query.data == "cancel":
+        await callback_query.message.edit_text("Order canceled.", reply_markup=main_menu_customer_keyboard)
+
+    await state.clear()
+    await callback_query.answer()
+
+
+#################
 
 async def handle_non_admin_access(callback_query: types.CallbackQuery, full_name: str):
     lier_string = "Sorry {}, you are not an admin!".format(bold(full_name))
@@ -469,7 +625,7 @@ async def handle_admin(callback_query: types.CallbackQuery):
 
 # Admin action handlers
 
-
+###############editing lunch
 async def handle_editing_lunch_menu(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.answer(
         "Please send the lunch menu details in the format:\n"
@@ -478,10 +634,7 @@ async def handle_editing_lunch_menu(callback_query: types.CallbackQuery, state: 
         parse_mode="Markdown",
     )
     await state.set_state(EditLunchMenuState.waiting_for_menu_text)
-    # await callback_query.message.edit_text(
-    #     "Editing lunch menu options... (Admin feature)",
-    #     reply_markup=main_menu_admin_keyboard,
-    # )
+
 
 
 @dp.message(EditLunchMenuState.waiting_for_menu_text)
@@ -505,7 +658,7 @@ async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
 
                 cursor.execute(
                     "INSERT INTO Lunch (date, items, price) VALUES (?, ?, ?)",
-                    (current_date, item, FIXED_PRICE),
+                    (current_date, item, FIXED_PRICE_Lunch),
                 )
 
             conn.commit()  # Commit all changes at once
@@ -548,14 +701,84 @@ async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
     #     "Performing another admin action!",
     #     reply_markup=main_menu_admin_keyboard,
     # )
+#####################
 
-
-async def edit_bakery_menu(callback_query: CallbackQuery):
-    await callback_query.message.edit_text(
-        "Editing bakery menu options... (Admin feature)",
-        reply_markup=main_menu_admin_keyboard,
+###################Editing bakery
+async def handle_editing_bakery_menu(callback_query: types.CallbackQuery, state: FSMContext):
+    await callback_query.message.answer(
+        "Please send the Bakery menu details in the format:\n"
+        "Sochinskie\n"
+        "Bulochka\n",
+        parse_mode="Markdown",
     )
+    await state.set_state(EditBakeryMenuState.waiting_for_menu_text)
 
+@dp.message(EditBakeryMenuState.waiting_for_menu_text)
+async def handle_reset_bakery_menu(message: types.Message, state: FSMContext):
+    input_text = message.text.strip()
+    current_date = datetime.datetime.now().strftime(date_mask)  # Get current date
+    menu_items = input_text.split("\n")  # Split by newlines
+
+    try:
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+
+            # Step 1: Delete the current menu for today
+            cursor.execute("DELETE FROM Bakery WHERE date = ?", (current_date,))
+
+            # Step 2: Insert the new menu items
+            for item in menu_items:
+                item = item.strip()  # Clean up whitespace
+                if not item:
+                    continue  # Skip empty lines
+
+                cursor.execute(
+                    "INSERT INTO Bakery (date, items, price) VALUES (?, ?, ?)",
+                    (current_date, item, FIXED_PRICE_Bakery),
+                )
+
+            conn.commit()  # Commit all changes at once
+
+            # Step 3: Notify the user
+            await message.answer(
+                f"✅ Bakery Menu reset for {current_date}:\n" + "\n".join(f"- {item}" for item in menu_items if item),
+                reply_markup=main_menu_admin_keyboard
+            )
+
+    except sqlite3.Error as e:
+        await message.answer(f"❌ Database error: {str(e)}")
+    except Exception as e:
+        await message.answer(f"❌ An unexpected error occurred: {str(e)}")
+    finally:
+        await state.clear()
+
+
+async def handle_showing_current_bakery_menu(callback_query: CallbackQuery):
+    current_date = datetime.datetime.now().strftime(date_mask)  # Get current date in YYYY-MM-DD format
+
+    try:
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+            # Use parameterized query to prevent SQL injection
+            cursor.execute(
+                "SELECT items, price FROM Bakery WHERE date = ?", (current_date,))
+            rows = cursor.fetchall()
+
+        if rows:
+            # Format the menu into a readable string
+            menu = "\n".join(
+                [f"- {item} (Price: {price})" for item, price in rows])
+            print(menu)
+            await callback_query.message.answer(f"🍴 Today's Bakery Menu ({current_date}):\n{menu}")
+        else:
+            await callback_query.message.answer(f"⚠️ No Bakery menu available for {current_date}.")
+    except sqlite3.Error as e:
+        await callback_query.message.answer(f"❌ Database error: {e}")
+
+
+
+
+######
 
 async def other_admin_action(callback_query: CallbackQuery):
     await callback_query.message.edit_text(

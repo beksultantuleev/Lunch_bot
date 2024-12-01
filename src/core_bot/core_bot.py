@@ -32,13 +32,24 @@ session = AiohttpSession()
 ADMINS = ["kazamabeks", "NUR_btuleev"]
 dp = Dispatcher()
 
-FIXED_PRICE = 220
+FIXED_PRICE_Lunch = 220
+FIXED_PRICE_Bakery = 60
+MAX_TEXT_LENGTH = 30
 
 class EditLunchMenuState(StatesGroup):
     waiting_for_menu_text = State()
 
+class EditBakeryMenuState(StatesGroup):
+    waiting_for_menu_text = State()
+
 class OrderLunchState(StatesGroup):
     selecting_lunch = State()
+    confirming_order = State()
+    # adding_comment = State()
+    # waiting_for_comment = State()
+
+class OrderBakeryState(StatesGroup):
+    selecting_bakery = State()
     confirming_order = State()
     # adding_comment = State()
     # waiting_for_comment = State()

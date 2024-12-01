@@ -6,6 +6,7 @@ cursor = conn.cursor()
 # Corrected SQL query
 cursor.execute("SELECT * FROM Customers_Order")
 # cursor.execute("SELECT * FROM Customers_Review")
+# cursor.execute("SELECT * FROM Bakery")
 rows = cursor.fetchall()
 
 # Print all rows

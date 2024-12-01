@@ -35,15 +35,16 @@ CUSTOMER_ACTIONS = {
     Actions.order_lunch_action: {'handler': handle_order_lunch, 'state': True},
     Actions.my_basket_action: {'handler': handle_my_basket, 'state': True},
     Actions.specify_additions_action: {'handler': handle_specify_additions, 'state': True},
-    Actions.order_bakery_action: {'handler': handle_order_additional_stuff, 'state': False},
+    Actions.order_bakery_action: {'handler': handle_order_bakery, 'state': True},
     Actions.leave_review_action: {'handler': handle_review, 'state': True},
 }
 
 ADMIN_ACTIONS = {
     Actions.administrator_action: {'handler': handle_admin, 'state': False},
     Actions.edit_lunch_menu_action: {'handler': handle_editing_lunch_menu, 'state': True},
-    Actions.edit_bakekry_action: {'handler': edit_bakery_menu, 'state': True},
+    Actions.edit_bakekry_action: {'handler': handle_editing_bakery_menu, 'state': True},
     Actions.current_lunch_menu_action: {'handler': handle_showing_current_lunch_menu, 'state': False},
+    Actions.current_bakekry_action: {'handler': handle_showing_current_bakery_menu, 'state': False},
     # Add more admin-specific actions here
     # "other_admin_action": other_admin_action,
 }
