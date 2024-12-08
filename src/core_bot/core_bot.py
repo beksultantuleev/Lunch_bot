@@ -34,7 +34,7 @@ dp = Dispatcher()
 
 FIXED_PRICE_Lunch = 220
 FIXED_PRICE_Bakery = 60
-MAX_TEXT_LENGTH = 30
+MAX_TEXT_LENGTH = 25
 
 class EditLunchMenuState(StatesGroup):
     waiting_for_menu_text = State()
@@ -45,14 +45,10 @@ class EditBakeryMenuState(StatesGroup):
 class OrderLunchState(StatesGroup):
     selecting_lunch = State()
     confirming_order = State()
-    # adding_comment = State()
-    # waiting_for_comment = State()
 
 class OrderBakeryState(StatesGroup):
     selecting_bakery = State()
     confirming_order = State()
-    # adding_comment = State()
-    # waiting_for_comment = State()
 
 
 class BasketState(StatesGroup):
@@ -62,7 +58,6 @@ class AdditionsState(StatesGroup):
     'garnier'
     selecting_lunch = State()
     waiting_for_addition = State()
-    # additions_to_specify = State()
 
 class ReviewState(StatesGroup):
     waiting_for_review = State()

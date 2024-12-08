@@ -7,6 +7,11 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 import sqlite3
 from aiogram.utils.markdown import bold
 from bot_commands.bot_handlers import *
+from bot_commands.c_order_handlers import *
+from bot_commands.c_garnish_handlers import *
+from bot_commands.c_basket_handlers import *
+from bot_commands.c_review_handlers import *
+from bot_commands.a_menu_handlers import *
 from aiogram.fsm.context import FSMContext
 
 hello_string = 'Hi, {}! welcome to NUR Lunch Bot! \nPlease select following options'
