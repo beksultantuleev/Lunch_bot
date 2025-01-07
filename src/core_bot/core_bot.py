@@ -53,9 +53,12 @@ class OrderBakeryState(StatesGroup):
 
 class BasketState(StatesGroup):
     viewing_basket = State()
+    payment_in_basket = State()
+    cash_or_card_qn = State()
+    upload_receipt = State()
 
 class AdditionsState(StatesGroup):
-    'garnier'
+    'garnish'
     selecting_lunch = State()
     waiting_for_addition = State()
 

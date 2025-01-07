@@ -1,0 +1,2 @@
+1) payment - upload and cach 
+2) time limit on order and on removing order
