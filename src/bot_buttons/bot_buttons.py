@@ -74,6 +74,20 @@ main_menu_customer_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     [main_menu_button]
 ])
 
+# # payment
+# cash_payment_btn = InlineKeyboardButton(
+#     text="Cash", callback_data='pay_cash')
+
+# card_payment_btn = InlineKeyboardButton(
+#     text="Card", callback_data='pay_card')
+
+
+# payment_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+#     [cash_payment_btn, card_payment_btn],
+#     [main_menu_button]
+# ])
+
+
 
 # ADMIN BUTTONS
 current_lunch_menu_btn = InlineKeyboardButton(
@@ -95,8 +109,5 @@ main_menu_admin_keyboard = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
-################# LOCATION################
-location_button = KeyboardButton(
-    text="Share your location", request_location=True)
-location_keyboard = ReplyKeyboardMarkup(
-    keyboard=[[location_button]], resize_keyboard=True, one_time_keyboard=True)
+
+

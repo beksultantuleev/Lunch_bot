@@ -20,13 +20,8 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
             rows = cursor.fetchall()
 
         if rows:
-            print('in the row!!')
             # Define the maximum length for item text
-            for row in rows:
-                #row 0 is id, row 1 is item_name
-                # print(row)
-                
-                print(row[1][:MAX_TEXT_LENGTH])
+            #row 0 is id, row 1 is item_name
 
             # Create dynamic lunch options
             keyboard = InlineKeyboardMarkup(
@@ -192,14 +187,6 @@ async def handle_order_bakery(callback_query: types.CallbackQuery, state: FSMCon
             rows = cursor.fetchall()
 
         if rows:
-            print('in the row!!')
-            # Define the maximum length for item text
-            for row in rows:
-                #row 0 is id, row 1 is item_name
-                # print(row)
-                
-                print(row[1][:MAX_TEXT_LENGTH])
-
             # Create dynamic lunch options
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
