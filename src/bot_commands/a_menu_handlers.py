@@ -4,6 +4,7 @@ from aiogram.utils.markdown import bold
 from aiogram.types import CallbackQuery
 import sqlite3
 import datetime
+import re
 
 # Admin action handlers
 
@@ -24,38 +25,57 @@ async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
     current_date = datetime.datetime.now().strftime(date_mask)  # Get current date
     menu_items = input_text.split("\n")  # Split by newlines
 
+    if not menu_items:  # Validate input menu text
+        await message.answer("❌ The provided menu is empty. Please provide a valid menu.")
+        return
+
     try:
         with sqlite3.connect(database_location) as conn:
+            conn.isolation_level = None  # Enable manual transaction control
             cursor = conn.cursor()
+            cursor.execute("BEGIN TRANSACTION;")  # Begin transaction
 
             # Step 1: Delete the current menu for today
             cursor.execute("DELETE FROM Lunch WHERE date = ?", (current_date,))
 
             # Step 2: Insert the new menu items
-            for item in menu_items:
-                item = item.strip()  # Clean up whitespace
-                if not item:
-                    continue  # Skip empty lines
+            for items_id, item in enumerate(menu_items):
+                item = item.strip()
+                if not item:  # Skip empty or whitespace-only lines
+                    continue
 
-                cursor.execute(
-                    "INSERT INTO Lunch (date, items, price) VALUES (?, ?, ?)",
-                    (current_date, item, FIXED_PRICE_Lunch),
-                )
+                # Extract item name and price (default to FIXED_PRICE_Lunch if not provided)
+                match = re.match(r'^(.+?)(?:\s+(\d+))?$', item)
+                if match:
+                    item_name = match.group(1).strip()
+                    price = int(match.group(2)) if match.group(2) else FIXED_PRICE_Lunch
 
-            conn.commit()  # Commit all changes at once
+                    cursor.execute(
+                        "INSERT INTO Lunch (date, items_id, items, price) VALUES (?, ?, ?, ?)",
+                        (current_date, f'lunch{items_id}', item_name, price),
+                    )
+
+            conn.commit()  # Commit all changes
 
             # Step 3: Notify the user
+            menu_display = "\n".join(
+                f"- {match.group(1).strip()} (Price: {match.group(2) if match.group(2) else FIXED_PRICE_Lunch})"
+                for match in (re.match(r'^(.+?)(?:\s+(\d+))?$', item.strip()) for item in menu_items)
+                if match
+            )
             await message.answer(
-                f"✅ Menu reset for {current_date}:\n" + "\n".join(f"- {item}" for item in menu_items if item),
+                f"✅ Menu reset for {current_date}:\n{menu_display}",
                 reply_markup=main_menu_admin_keyboard
             )
 
     except sqlite3.Error as e:
         await message.answer(f"❌ Database error: {str(e)}")
+        if 'conn' in locals():
+            conn.rollback()  # Rollback changes if a database error occurs
     except Exception as e:
-        await message.answer(f"❌ An unexpected error occurred: {str(e)}")
+        await message.answer(f"❌ An unexpected error occurred: {str(e)}. Please contact support.")
     finally:
-        await state.clear()
+        await state.clear()  # Clear the state to reset the flow
 
 
 async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
@@ -103,38 +123,57 @@ async def handle_reset_bakery_menu(message: types.Message, state: FSMContext):
     current_date = datetime.datetime.now().strftime(date_mask)  # Get current date
     menu_items = input_text.split("\n")  # Split by newlines
 
+    if not menu_items:  # Validate input menu text
+        await message.answer("❌ The provided bakery menu is empty. Please provide a valid menu.")
+        return
+
     try:
         with sqlite3.connect(database_location) as conn:
+            conn.isolation_level = None  # Enable manual transaction control
             cursor = conn.cursor()
+            cursor.execute("BEGIN TRANSACTION;")  # Begin transaction
 
             # Step 1: Delete the current menu for today
             cursor.execute("DELETE FROM Bakery WHERE date = ?", (current_date,))
 
             # Step 2: Insert the new menu items
-            for item in menu_items:
+            for item_id, item  in enumerate(menu_items):
                 item = item.strip()  # Clean up whitespace
-                if not item:
-                    continue  # Skip empty lines
+                if not item:  # Skip empty or whitespace-only lines
+                    continue
 
-                cursor.execute(
-                    "INSERT INTO Bakery (date, items, price) VALUES (?, ?, ?)",
-                    (current_date, item, FIXED_PRICE_Bakery),
-                )
+                # Extract item name and price (default to FIXED_PRICE_Bakery if not provided)
+                match = re.match(r'^(.+?)(?:\s+(\d+))?$', item)
+                if match:
+                    item_name = match.group(1).strip()
+                    price = int(match.group(2)) if match.group(2) else FIXED_PRICE_Bakery
 
-            conn.commit()  # Commit all changes at once
+                    cursor.execute(
+                        "INSERT INTO Bakery (date, items_id, items, price) VALUES (?, ?, ?, ?)",
+                        (current_date, f'bakery{item_id}', item_name, price),
+                    )
+
+            conn.commit()  # Commit all changes
 
             # Step 3: Notify the user
+            menu_display = "\n".join(
+                f"- {match.group(1).strip()} (Price: {match.group(2) if match.group(2) else FIXED_PRICE_Bakery})"
+                for match in (re.match(r'^(.+?)(?:\s+(\d+))?$', item.strip()) for item in menu_items)
+                if match
+            )
             await message.answer(
-                f"✅ Bakery Menu reset for {current_date}:\n" + "\n".join(f"- {item}" for item in menu_items if item),
+                f"✅ Bakery Menu reset for {current_date}:\n{menu_display}",
                 reply_markup=main_menu_admin_keyboard
             )
 
     except sqlite3.Error as e:
         await message.answer(f"❌ Database error: {str(e)}")
+        if 'conn' in locals():
+            conn.rollback()  # Rollback changes if a database error occurs
     except Exception as e:
-        await message.answer(f"❌ An unexpected error occurred: {str(e)}")
+        await message.answer(f"❌ An unexpected error occurred: {str(e)}. Please contact support.")
     finally:
-        await state.clear()
+        await state.clear()  # Clear the state to reset the flow
 
 
 async def handle_showing_current_bakery_menu(callback_query: CallbackQuery):

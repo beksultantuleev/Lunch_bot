@@ -16,29 +16,18 @@ async def handle_specify_additions(callback_query: types.CallbackQuery, state: F
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT ordered_item, ordered_quantity, additional_info FROM Customers_Order WHERE date = ? AND chat_id = ?", (current_date, chat_id))
+                "SELECT ordered_item_id, ordered_item, ordered_quantity, additional_info FROM Customers_Order WHERE date = ? AND chat_id = ?", (current_date, chat_id))
             rows = cursor.fetchall()
             if rows:
-                # keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                #     [
-                #         InlineKeyboardButton(
-                #             text=f"{qnt} x {item}", callback_data=f"select_{item}"
-                #         ),
-                #         InlineKeyboardButton(
-                #             text="additions", callback_data=f"specify_additions_{item}"
-                #         )
-                #     ]
-                #     for item, qnt, additions in rows
-                # ])
-                
+              
 
                 # Create dynamic lunch options
                 keyboard = InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
                             InlineKeyboardButton(
-                                text=f"{row[1]}x{row[0][:MAX_TEXT_LENGTH]}..." if len(row[0]) > MAX_TEXT_LENGTH else f"{row[0]}",
-                                callback_data=f"select_{row[0][:MAX_TEXT_LENGTH]}"
+                                text=f"{row[1][:MAX_TEXT_LENGTH]}..." if len(row[1]) > MAX_TEXT_LENGTH else f"{row[1]}",
+                                callback_data=f"select_{row[0]}"
                             ),
                         #     InlineKeyboardButton(
                         #     text="additions", callback_data=f"specify_additions_{row[0][:MAX_TEXT_LENGTH]}"
@@ -75,10 +64,30 @@ async def handle_addition_selection(callback_query: types.CallbackQuery, state: 
     # elif callback_query.data.startswith("specify_additions_"):
     elif callback_query.data.startswith("select_"):
         # Extract the item name
-        item_name = callback_query.data.split("select_", 1)[1]
+        item_id = callback_query.data.split("select_", 1)[1]
 
         # Save the item in the state
-        await state.update_data(selected_item=item_name)
+        await state.update_data(selected_item=item_id)
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+            print(f'this is item ID: {item_id}')
+
+            # Fetch the price of the item from the Menu table
+            cursor.execute(
+                """
+                SELECT items FROM Lunch WHERE items_id = ?
+                UNION ALL 
+                SELECT items FROM Bakery WHERE items_id = ?
+                """, (item_id, item_id)  # Pass item_id twice
+            )
+
+            item_name = cursor.fetchone()[0]
+            # else:
+            #     cursor.execute(
+            #         "SELECT items FROM Bakery WHERE items_id = ?", (item_id,))
+            #     item_name = cursor.fetchone()[0]
+            print(f'item_name is {item_name}')
+
 
         # Prompt the user to enter additional info
         await callback_query.message.edit_text(f"Please type the additions for {item_name}:")
@@ -91,20 +100,30 @@ async def save_additional_info(message: types.Message, state: FSMContext):
 
     # Retrieve the item and other necessary data from the state
     data = await state.get_data()
-    item_name = data.get("selected_item")
+    item_id = data.get("selected_item")
     chat_id = message.chat.id
     current_date = datetime.datetime.now().strftime(date_mask)
 
     try:
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                SELECT items FROM Lunch WHERE items_id = ?
+                UNION ALL 
+                SELECT items FROM Bakery WHERE items_id = ?
+                """, (item_id, item_id)  # Pass item_id twice
+            )
+
+            item_name = cursor.fetchone()[0]
 
             # Update the additional_info for the selected item
             cursor.execute("""
                 UPDATE Customers_Order
                 SET additional_info = ?
-                WHERE date = ? AND chat_id = ? AND ordered_item = ?
-            """, (addition, current_date, chat_id, item_name))
+                WHERE date = ? AND chat_id = ? AND ordered_item_id = ?
+            """, (addition, current_date, chat_id, item_id))
             conn.commit()
 
         # Notify the user

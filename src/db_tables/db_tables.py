@@ -9,9 +9,10 @@ cursor = conn.cursor()
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS Lunch (
     date DATE NOT NULL,
+    items_id TEXT NOT NULL,
     items TEXT NOT NULL,
     price REAL NOT NULL,
-    PRIMARY KEY (date, items)
+    PRIMARY KEY (date, items_id, items)
 )
 ''')
 
@@ -19,9 +20,10 @@ CREATE TABLE IF NOT EXISTS Lunch (
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS Bakery (
     date DATE NOT NULL,
+    items_id TEXT NOT NULL,
     items TEXT NOT NULL,
     price REAL NOT NULL,
-    PRIMARY KEY (date, items)
+    PRIMARY KEY (date, items_id, items)
 )
 ''')
 
@@ -31,6 +33,7 @@ CREATE TABLE IF NOT EXISTS Customers_Order (
     date DATE NOT NULL,
     chat_id INTEGER NOT NULL,
     username TEXT,
+    ordered_item_id TEXT NOT NULL,
     ordered_item TEXT NOT NULL,
     additional_info TEXT,
     ordered_quantity INTEGER DEFAULT 0,

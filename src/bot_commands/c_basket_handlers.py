@@ -20,31 +20,39 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT ordered_item, ordered_quantity, total_price FROM Customers_Order WHERE date = ? AND chat_id = ?", (current_date, chat_id))
+                "SELECT ordered_item, ordered_quantity, total_price, ordered_item_id FROM Customers_Order WHERE date = ? AND chat_id = ?", (current_date, chat_id))
             rows = cursor.fetchall()
 
             'previous unpaid orders'
             cursor.execute(
-                "SELECT ordered_item, ordered_quantity, total_price FROM Customers_Order WHERE date != ? AND chat_id = ? and is_paid = 0", (current_date, chat_id))
+                "SELECT ordered_item, ordered_quantity, total_price, ordered_item_id FROM Customers_Order WHERE date != ? AND chat_id = ? and is_paid = 0", (current_date, chat_id))
             unpaid_rows = cursor.fetchall()
+
+            # cursor.execute(
+            #         "SELECT items_id FROM Lunch WHERE items = ?", (item_id))
+            # item_name = cursor.fetchone()[0]
+
             keyboard_unpaid = None
             if unpaid_rows:
+                # print(f'unpaid rows: {unpaid_rows}')
                 for row in unpaid_rows:
                     unpaid_total_price += row[2]
                 # print(f'this is total unpaid price: {unpaid_total_price}')
                 keyboard_unpaid = InlineKeyboardMarkup(inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text=f"{qnt} x {item} - {price} KGS", callback_data=f"select_{item}"
+                            text=f"{qnt} x {item[:MAX_TEXT_LENGTH]} - {price} KGS", callback_data=f"select_{itemx_id}"
                         ),
                         # InlineKeyboardButton(
                         #     text="❌", callback_data=f"delete_{item}"
                         # )
                     ]
-                    for item, qnt, price in unpaid_rows
+                    for item, qnt, price, itemx_id in unpaid_rows
                 ])
 
             if rows:
+                # print(f'unpaid rows: {rows}')
+
 
                 for row in rows:
                     total_price += row[2]
@@ -53,13 +61,13 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text=f"{qnt} x {item} - {price} KGS", callback_data=f"select_{item}"
+                            text=f"{qnt} x {item[:MAX_TEXT_LENGTH]} - {price} KGS", callback_data=f"select_{item_id}"
                         ),
                         InlineKeyboardButton(
-                            text="❌", callback_data=f"delete_{item}"
+                            text="❌", callback_data=f"delete_{item_id}"
                         )
                     ]
-                    for item, qnt, price in rows
+                    for item, qnt, price, item_id in rows
                 ])
                 keyboard.inline_keyboard.append([InlineKeyboardButton(
                     text=f"Debt: {unpaid_total_price} KGS", callback_data="noop")])
@@ -101,7 +109,7 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
     data = callback_query.data
     # user_data = await state.get_data()
     current_date = datetime.datetime.now().strftime(
-        date_mask)  # Get current date in YYYY-MM-DD format
+        date_mask) 
     chat_id = callback_query.message.chat.id
 
     if data == "return_main_menu":
@@ -113,8 +121,8 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
         return
     
     if data.startswith("delete_"):
-        item_name = data.split("_", 1)[1]
-        print(f'this is item name: {item_name}\nchat_Id: {chat_id}\ndate: {current_date}')
+        item_id = data.split("_", 1)[1]
+        print(f'this is item name: {item_id}\nchat_Id: {chat_id}\ndate: {current_date}')
 
         try:
             with sqlite3.connect(database_location) as conn:
@@ -123,8 +131,8 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
                 # Delete the item from the basket
                 cursor.execute("""
                     DELETE FROM Customers_Order
-                    WHERE date = ? AND chat_id = ? AND ordered_item = ?
-                """, (current_date, chat_id, item_name))
+                    WHERE date = ? AND chat_id = ? AND ordered_item_id = ?
+                """, (current_date, chat_id, item_id))
 
                 conn.commit()
             await callback_query.answer("Item deleted from basket.")

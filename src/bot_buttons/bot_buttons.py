@@ -43,8 +43,10 @@ main_menu_button = InlineKeyboardButton(
 # CUSTOMERS options
 order_lunch_btn = InlineKeyboardButton(
     text="Order a lunch", callback_data=StartCallbackData(action=Actions.order_lunch_action).pack())
+
 order_bakery_btn = InlineKeyboardButton(
     text="Bakery", callback_data=StartCallbackData(action=Actions.order_bakery_action).pack())
+
 specify_additions_btn = InlineKeyboardButton(
     text="Specify additions", callback_data=StartCallbackData(action=Actions.specify_additions_action).pack())
 
