@@ -13,6 +13,7 @@ from bot_commands.c_basket_handlers import *
 from bot_commands.c_review_handlers import *
 from bot_commands.a_menu_handlers import *
 from aiogram.fsm.context import FSMContext
+from aiogram import Router, F
 
 hello_string = 'Hi, {}! welcome to NUR Lunch Bot! \nPlease select following options'
 lier_string = "{}, you are not administrator! "
@@ -33,6 +34,23 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     cutomers_full_name = message.from_user.full_name
     await state.clear()
     await message.answer(hello_string.format(html.bold(cutomers_full_name)), reply_markup=start_keyboard)
+
+
+@dp.message(Command("cancel"))
+async def command_cancel_handler(message: Message, state: FSMContext) -> None:
+    """
+    This handler receives messages with `/cancel` command
+    """
+    current_state = await state.get_state()
+    if current_state is None:
+        await message.answer("You are not in any active state.")
+    else:
+        await state.clear()  # Clear all FSM states and data
+        await message.answer(
+            "All states have been canceled. If you need further assistance, you can start again with /start.",
+            reply_markup=start_keyboard,
+        )
+
 
 
 CUSTOMER_ACTIONS = {

@@ -1,3 +1,6 @@
 1) payment - upload and cach 
     upload photo almost done
+    add photo in database
+    add user full name in Customers_Order
+    
 2) time limit on order and on removing order

@@ -15,6 +15,7 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
     unpaid_total_price = 0
     paid_total_price = 0
     total_price = 0
+    all_time_unpaid_total_price = 0
 
     try:
         with sqlite3.connect(database_location) as conn:
@@ -90,10 +91,11 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
                     ]
                     for item, qnt, price, item_id in rows
                 ])
+                all_time_unpaid_total_price = total_price + unpaid_total_price
                 keyboard.inline_keyboard.append([InlineKeyboardButton(
                     text=f"Debt: {unpaid_total_price} KGS", callback_data="noop")])
                 keyboard.inline_keyboard.append([InlineKeyboardButton(
-                    text=f"Total: {total_price + unpaid_total_price} KGS", callback_data="noop")])
+                    text=f"Total: {all_time_unpaid_total_price} KGS", callback_data="noop")])
                 keyboard.inline_keyboard.append([InlineKeyboardButton(
                     text=f"Make a payment", callback_data="pay_button")])
                 keyboard.inline_keyboard.append([InlineKeyboardButton(
@@ -105,8 +107,9 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
                 await state.set_state(BasketState.viewing_basket)
 
             elif keyboard_unpaid:
+                all_time_unpaid_total_price = total_price + unpaid_total_price
                 keyboard_unpaid.inline_keyboard.append([InlineKeyboardButton(
-                    text=f"Total: {unpaid_total_price} KGS", callback_data="noop")])
+                    text=f"Total: {all_time_unpaid_total_price} KGS", callback_data="noop")])
                 keyboard_unpaid.inline_keyboard.append([InlineKeyboardButton(
                     text=f"Make a payment", callback_data="pay_button")])
                 keyboard_unpaid.inline_keyboard.append([InlineKeyboardButton(
@@ -185,6 +188,8 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
             [cash_payment_btn, card_payment_btn],
             # [main_menu_button]
         ])
+        payment_keyboard.inline_keyboard.append([InlineKeyboardButton(
+            text="🔙 Main Menu", callback_data="return_main_menu")])
         await callback_query.message.edit_text(
             "cash or card?:",
             reply_markup=payment_keyboard
@@ -199,17 +204,25 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
 async def handle_cash_payment(callback_query: types.CallbackQuery, state: FSMContext):
     print('in cash handler')
     data = callback_query.data
+    if data == "return_main_menu":
+        await state.clear()
+        await callback_query.message.edit_text(
+            "🔙 Back to the main menu. Choose an option:",
+            reply_markup=main_menu_customer_keyboard
+        )
+        return
 
     chat_id = callback_query.message.chat.id
     current_date = datetime.datetime.now().strftime(date_mask)
-    if data== 'paid_cash':
+    if data == 'paid_cash':
 
         try:
             with sqlite3.connect(database_location) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE Customers_Order
-                    SET is_paid = 1
+                    SET is_paid = 1,
+                        payment_type = 'cash'
                     WHERE chat_id = ? AND is_paid = 0
                 """, (chat_id,))
                 conn.commit()
@@ -228,13 +241,15 @@ async def handle_cash_payment(callback_query: types.CallbackQuery, state: FSMCon
     await callback_query.answer()
 
 
-# @dp.callback_query(lambda c: c.data == "pay_card", state=BasketState.payment_in_basket)
-# async def handle_card_payment(callback_query: types.CallbackQuery, state: FSMContext):
-#     await callback_query.message.edit_text("Please upload a photo of your receipt.")
-#     await state.set_state(BasketState.upload_receipt)
-
 async def handle_receipt_upload(message: types.Message, state: FSMContext):
     print("In upload receipt")
+    chat_id = message.chat.id
+
+    # Check for cancellation command
+    if message.text and message.text.lower() == "/start":
+        await message.answer("❌ Upload process has been canceled.", reply_markup=main_menu_customer_keyboard)
+        await state.clear()
+        return
     current_date = datetime.datetime.now().strftime(date_mask)
     try:
         file_id = None
@@ -256,11 +271,30 @@ async def handle_receipt_upload(message: types.Message, state: FSMContext):
 
             # Download the file
             await message.bot.download_file(file.file_path, file_path)
-        
+
+            with open(file_path, 'rb') as file_:
+                blob_data = file_.read()
 
             # Success response
-            await message.answer("✅ Receipt uploaded successfully. Thank you for your payment!")
-            await state.clear()
+            # await message.answer("✅ Receipt uploaded successfully. Thank you for your payment!", reply_markup=main_menu_customer_keyboard)
+            try:
+                with sqlite3.connect(database_location) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        UPDATE Customers_Order
+                        SET is_paid = 1,
+                        payment_type = 'card',
+                        screenshot = ?
+                        WHERE chat_id = ? AND is_paid = 0
+                    """, (blob_data, chat_id,))
+                    conn.commit()
+
+                await message.answer("✅ Receipt uploaded successfully. Thank you for your payment!", reply_markup=main_menu_customer_keyboard)
+                await state.clear()
+
+            except sqlite3.Error as e:
+                await message.answer(f"❌ Database error: {e}")
+                await state.clear()
 
     except Exception as e:
         # Error handling
@@ -268,7 +302,9 @@ async def handle_receipt_upload(message: types.Message, state: FSMContext):
         await state.clear()
 
 # Register the review handlers
-dp.callback_query.register(handle_cash_payment, StateFilter(BasketState.upload_receipt))
-dp.message.register(handle_receipt_upload, StateFilter(BasketState.upload_receipt))
+dp.callback_query.register(
+    handle_cash_payment, StateFilter(BasketState.upload_receipt))
+dp.message.register(handle_receipt_upload,
+                    StateFilter(BasketState.upload_receipt))
 
 ############################

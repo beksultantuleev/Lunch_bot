@@ -40,8 +40,22 @@ CREATE TABLE IF NOT EXISTS Customers_Order (
     unit_price REAL NOT NULL,
     total_price REAL NOT NULL,
     is_paid INTEGER DEFAULT 0, -- 0 for unpaid, 1 for paid
+    payment_type TEXT,
+    screenshot BLOB,
     PRIMARY KEY (date, chat_id, ordered_item),
     FOREIGN KEY (ordered_item) REFERENCES Menu(items) -- Assuming a unified Menu table for lunch and bakery items
+)
+''')
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS Order_raiting (
+    date DATE NOT NULL,
+    chat_id INTEGER NOT NULL,
+    username TEXT,
+    ordered_item_id TEXT NOT NULL,
+    ordered_item TEXT NOT NULL,
+    raiting_score REAL,
+    PRIMARY KEY (date, chat_id, ordered_item)
 )
 ''')
 

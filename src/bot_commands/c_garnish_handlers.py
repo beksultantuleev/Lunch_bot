@@ -54,6 +54,8 @@ async def handle_specify_additions(callback_query: types.CallbackQuery, state: F
 
 @dp.callback_query(AdditionsState.selecting_lunch)
 async def handle_addition_selection(callback_query: types.CallbackQuery, state: FSMContext):
+    current_date = datetime.datetime.now().strftime(
+        date_mask)
     if callback_query.data == "return_main_menu":
         await state.clear()
         await callback_query.message.edit_text(
@@ -75,10 +77,10 @@ async def handle_addition_selection(callback_query: types.CallbackQuery, state: 
             # Fetch the price of the item from the Menu table
             cursor.execute(
                 """
-                SELECT items FROM Lunch WHERE items_id = ?
+                SELECT items FROM Lunch WHERE items_id = ? and date = ?
                 UNION ALL 
-                SELECT items FROM Bakery WHERE items_id = ?
-                """, (item_id, item_id)  # Pass item_id twice
+                SELECT items FROM Bakery WHERE items_id = ? and date = ?
+                """, (item_id, current_date, item_id, current_date,)  # Pass item_id twice
             )
 
             item_name = cursor.fetchone()[0]
@@ -95,6 +97,8 @@ async def handle_addition_selection(callback_query: types.CallbackQuery, state: 
         await callback_query.answer()
 
 async def save_additional_info(message: types.Message, state: FSMContext):
+    current_date = datetime.datetime.now().strftime(
+        date_mask)
     # Get the user's input
     addition = message.text
 
@@ -110,10 +114,10 @@ async def save_additional_info(message: types.Message, state: FSMContext):
             
             cursor.execute(
                 """
-                SELECT items FROM Lunch WHERE items_id = ?
+                SELECT items FROM Lunch WHERE items_id = ? and date = ?
                 UNION ALL 
-                SELECT items FROM Bakery WHERE items_id = ?
-                """, (item_id, item_id)  # Pass item_id twice
+                SELECT items FROM Bakery WHERE items_id = ? and date = ?
+                """, (item_id, current_date, item_id, current_date,)  # Pass item_id twice
             )
 
             item_name = cursor.fetchone()[0]

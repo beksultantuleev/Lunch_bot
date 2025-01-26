@@ -6,11 +6,10 @@ import sqlite3
 import datetime
 
 
-
-##########################ORDER Lunch
+# ORDER Lunch
 async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMContext):
     current_date = datetime.datetime.now().strftime(
-        date_mask)  
+        date_mask)
 
     try:
         with sqlite3.connect(database_location) as conn:
@@ -20,15 +19,18 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
             rows = cursor.fetchall()
 
         if rows:
+            # for row in rows:
+            #     print(row)
             # Define the maximum length for item text
-            #row 0 is id, row 1 is item_name
+            # row 0 is id, row 1 is item_name
 
             # Create dynamic lunch options
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text=f"{row[1][:MAX_TEXT_LENGTH]}..." if len(row[1]) > MAX_TEXT_LENGTH else f"{row[1]}",
+                            text=f"{row[1][:MAX_TEXT_LENGTH]}..." if len(
+                                row[1]) > MAX_TEXT_LENGTH else f"{row[1]}",
                             callback_data=f"select_{row[0]}"
                         )
                     ]
@@ -46,14 +48,17 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
             )
             await state.set_state(OrderLunchState.selecting_lunch)
         else:
-            await callback_query.message.edit_text(f"⚠️ No lunch options available for {current_date}.")
+            await callback_query.message.edit_text(f"⚠️ No lunch options available for {current_date}.", reply_markup=main_menu_customer_keyboard)
 
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}")
     await callback_query.answer()
 
+
 @dp.callback_query(OrderLunchState.selecting_lunch)
 async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
+    current_date = datetime.datetime.now().strftime(
+        date_mask)
     if callback_query.data == "return_main_menu":
         await state.clear()  # Clear the state before returning to the main menu
         await callback_query.message.edit_text("🔙 Returning to the main menu.", reply_markup=main_menu_customer_keyboard)
@@ -65,7 +70,7 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
 
         # Fetch the price of the item from the Menu table
         cursor.execute(
-            "SELECT items FROM Lunch WHERE items_id = ?", (item_id,))
+            "SELECT items FROM Lunch WHERE items_id = ? and date = ?", (item_id, current_date,))
         item_name = cursor.fetchone()[0]
 
     # Store the selected item in the state
@@ -88,6 +93,7 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
     await state.set_state(OrderLunchState.confirming_order)
     await callback_query.answer()
 
+
 @dp.callback_query(OrderLunchState.confirming_order)
 async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -104,11 +110,11 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
 
                 # Fetch the price of the item from the Menu table
                 cursor.execute(
-                    "SELECT price FROM Lunch WHERE items_id = ?", (item_id,))
+                    "SELECT price FROM Lunch WHERE items_id = ? and date = ?", (item_id, current_date,))
                 price_row = cursor.fetchone()
 
                 cursor.execute(
-                    "SELECT items FROM Lunch WHERE items_id = ?", (item_id,))
+                    "SELECT items FROM Lunch WHERE items_id = ? and date = ?", (item_id, current_date,))
                 item_name = cursor.fetchone()[0]
 
                 if not price_row:
@@ -159,7 +165,7 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
 
     #     # Prompt the user for a comment
     #     await callback_query.message.edit_text(f"Please type your comment for {item}:")
-        
+
     #     # Set the state to waiting for a comment
     #     await state.set_state(OrderLunchState.waiting_for_comment)
     #     await callback_query.answer()
@@ -171,13 +177,10 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
 
 
-
-
-
-##################bakery
+# bakery
 async def handle_order_bakery(callback_query: types.CallbackQuery, state: FSMContext):
     current_date = datetime.datetime.now().strftime(
-        date_mask)  
+        date_mask)
 
     try:
         with sqlite3.connect(database_location) as conn:
@@ -192,7 +195,8 @@ async def handle_order_bakery(callback_query: types.CallbackQuery, state: FSMCon
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text=f"{row[1][:MAX_TEXT_LENGTH]}..." if len(row[1]) > MAX_TEXT_LENGTH else f"{row[1]}",
+                            text=f"{row[1][:MAX_TEXT_LENGTH]}..." if len(
+                                row[1]) > MAX_TEXT_LENGTH else f"{row[1]}",
                             callback_data=f"select_{row[0]}"
                         )
                     ]
@@ -210,14 +214,17 @@ async def handle_order_bakery(callback_query: types.CallbackQuery, state: FSMCon
             )
             await state.set_state(OrderBakeryState.selecting_bakery)
         else:
-            await callback_query.message.edit_text(f"⚠️ No Bakery options available for {current_date}.")
+            await callback_query.message.edit_text(f"⚠️ No Bakery options available for {current_date}.", reply_markup=main_menu_customer_keyboard)
 
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}")
     await callback_query.answer()
 
+
 @dp.callback_query(OrderBakeryState.selecting_bakery)
 async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
+    current_date = datetime.datetime.now().strftime(
+        date_mask)
     if callback_query.data == "return_main_menu":
         await state.clear()  # Clear the state before returning to the main menu
         await callback_query.message.edit_text("🔙 Returning to the main menu.", reply_markup=main_menu_customer_keyboard)
@@ -229,7 +236,7 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
 
         # Fetch the price of the item from the Menu table
         cursor.execute(
-            "SELECT items FROM Bakery WHERE items_id = ?", (item_id,))
+            "SELECT items FROM Bakery WHERE items_id = ? and date = ?", (item_id, current_date,))
         item_name = cursor.fetchone()[0]
 
     # Store the selected item in the state
@@ -252,6 +259,7 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
     await state.set_state(OrderBakeryState.confirming_order)
     await callback_query.answer()
 
+
 @dp.callback_query(OrderBakeryState.confirming_order)
 async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -268,11 +276,11 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
 
                 # Fetch the price of the item from the Menu table
                 cursor.execute(
-                    "SELECT price FROM Bakery WHERE items_id = ?", (item_id,))
+                    "SELECT price FROM Bakery WHERE items_id = ? and date = ?", (item_id, current_date,))
                 price_row = cursor.fetchone()
 
                 cursor.execute(
-                    "SELECT items FROM Bakery WHERE items_id = ?", (item_id,))
+                    "SELECT items FROM Bakery WHERE items_id = ? and date = ?", (item_id, current_date,))
                 item_name = cursor.fetchone()[0]
 
                 if not price_row:
@@ -323,7 +331,7 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
 
     #     # Prompt the user for a comment
     #     await callback_query.message.edit_text(f"Please type your comment for {item}:")
-        
+
     #     # Set the state to waiting for a comment
     #     await state.set_state(OrderLunchState.waiting_for_comment)
     #     await callback_query.answer()
