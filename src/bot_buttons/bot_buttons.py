@@ -19,6 +19,8 @@ class Actions:
     lunch_rating_list_action = 'lunch_rating_list_action'
     rate_your_lunch_action = 'rate_your_lunch_action'
     administrator_action = 'administrator_action'
+    export_today_excel_action = 'export_today_excel_action'
+    export_all_excel_action = 'export_all_excel_action'
 
     # current_bakekry_action = 'current_bakekry_action'
     # edit_bakekry_action = 'edit_bakekry_action'
@@ -106,12 +108,18 @@ reset_lunch_menu_btn = InlineKeyboardButton(
 current_lunch_menu_btn = InlineKeyboardButton(
     text="Current Lunch Menu", callback_data=StartCallbackData(action=Actions.current_lunch_menu_action).pack())
 
+export_today_excel_btn = InlineKeyboardButton(
+    text="Export todays data", callback_data=StartCallbackData(action=Actions.export_today_excel_action).pack())
+
+export_all_excel_btn = InlineKeyboardButton(
+    text="Export All data", callback_data=StartCallbackData(action=Actions.export_all_excel_action).pack())
 
 main_menu_admin_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     # [current_lunch_menu_btn, current_bakery_menu_btn],
     [current_lunch_menu_btn,],
     # [reset_lunch_menu_btn, reset_bakery_menu_btn],
     [reset_lunch_menu_btn,],
+    [export_today_excel_btn, export_all_excel_btn],
     [main_menu_button]
 ])
 

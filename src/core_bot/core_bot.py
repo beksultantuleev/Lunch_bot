@@ -45,7 +45,7 @@ DEFAULT_AVAILABLE_AMOUNT = 100
 MAX_TEXT_LENGTH = 25
 #time limit for ordering and chaning order
 hour_time_limit = 17
-min_time_limit = 10
+min_time_limit = 30
 ORDER_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM
 PAYMENT_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM
 

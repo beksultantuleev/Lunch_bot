@@ -71,6 +71,8 @@ ADMIN_ACTIONS = {
     Actions.edit_lunch_menu_action: {'handler': handle_editing_lunch_menu, 'state': True},
     # Actions.edit_bakekry_action: {'handler': handle_editing_bakery_menu, 'state': True},
     Actions.current_lunch_menu_action: {'handler': handle_showing_current_lunch_menu, 'state': False},
+    Actions.export_today_excel_action: {'handler': handle_today_export_orders, 'state': False},
+    Actions.export_all_excel_action: {'handler': handle_all_export_orders, 'state': False},
     # Actions.current_bakekry_action: {'handler': handle_showing_current_bakery_menu, 'state': False},
     # Add more admin-specific actions here
     # "other_admin_action": other_admin_action,

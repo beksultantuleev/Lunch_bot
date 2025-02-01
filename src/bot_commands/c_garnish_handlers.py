@@ -9,8 +9,12 @@ import datetime
 ######################Additions
 'garnish'
 async def handle_specify_additions(callback_query: types.CallbackQuery, state: FSMContext): 
+    now = datetime.datetime.now().time()
+    if now > ORDER_TIME_LIMIT:
+        await callback_query.answer(f"⏳ Order time is over! You can do it only before {hour_time_limit}:{min_time_limit}", show_alert=True)
+        return
     current_date = datetime.datetime.now().strftime(
-        date_mask)  # Get current date in YYYY-MM-DD format
+        date_mask)
     chat_id = callback_query.message.chat.id
     try:
         with sqlite3.connect(database_location) as conn:
