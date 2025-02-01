@@ -153,6 +153,11 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
         return
 
     if data.startswith("delete_"):
+        now = datetime.datetime.now().time()
+        if now >= ORDER_TIME_LIMIT:
+            await callback_query.answer("⏳ Time is over! You can delete orders only before 11:00 AM.", show_alert=True)
+            return
+
         item_id = data.split("_", 1)[1]
         print(
             f'this is item name: {item_id}\nchat_Id: {chat_id}\ndate: {current_date}')
@@ -177,6 +182,10 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
             await state.clear()
 
     if data == "pay_button":
+        now = datetime.datetime.now().time()
+        if now < PAYMENT_TIME_LIMIT:
+            await callback_query.answer(f"⏳ You can pay only after {hour_time_limit}:{min_time_limit}", show_alert=True)
+            return
 
         cash_payment_btn = InlineKeyboardButton(
             text="Cash", callback_data='paid_cash')

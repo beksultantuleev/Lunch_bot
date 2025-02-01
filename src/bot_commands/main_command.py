@@ -11,6 +11,7 @@ from bot_commands.c_order_handlers import *
 from bot_commands.c_garnish_handlers import *
 from bot_commands.c_basket_handlers import *
 from bot_commands.c_review_handlers import *
+from bot_commands.c_raiting_handlers import *
 from bot_commands.a_menu_handlers import *
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F
@@ -60,6 +61,7 @@ CUSTOMER_ACTIONS = {
     Actions.specify_additions_action: {'handler': handle_specify_additions, 'state': True},
     Actions.order_bakery_action: {'handler': handle_order_bakery, 'state': True},
     Actions.leave_review_action: {'handler': handle_review, 'state': True},
+    Actions.rate_your_lunch_action: {'handler': handle_rating, 'state': True},
 }
 
 ADMIN_ACTIONS = {

@@ -10,12 +10,16 @@ import datetime
 async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMContext):
     current_date = datetime.datetime.now().strftime(
         date_mask)
+    now = datetime.datetime.now().time()
+    if now > ORDER_TIME_LIMIT:
+        await callback_query.answer(f"⏳ Order time is over! You can order only before {hour_time_limit}:{min_time_limit}", show_alert=True)
+        return
 
     try:
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT items_id, items, price FROM Lunch WHERE date = ?", (current_date,))
+                "SELECT items_id, items, price FROM Lunch WHERE date = ? ORDER BY items", (current_date,))
             rows = cursor.fetchall()
 
         if rows:

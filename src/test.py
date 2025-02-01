@@ -5,6 +5,7 @@ cursor = conn.cursor()
 
 # Corrected SQL query
 table_name = 'Customers_Order'
+# table_name ="Order_raiting"
 # table_name = 'Lunch'
 # table_name = 'Bakery'
 cursor.execute(f"SELECT * FROM {table_name}")

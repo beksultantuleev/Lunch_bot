@@ -16,25 +16,37 @@ from dotenv import load_dotenv
 import sqlite3
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+import datetime
 
 load_dotenv()
 
 TOKEN = os.environ.get('TOKEN')
+dev_status = bool(os.environ.get('DEVELOPING'))
+
 link = 'https://t.me/NURlunchBot'
-# proxy_url = pass_decoder(os.environ.get(f'PROXY01'))
-# proxies = {'http': proxy_url, 'https': proxy_url}
+proxy_url = 'http://172.27.129.0:3128'
+proxies = {'http': proxy_url, 'https': proxy_url}
 date_mask = "%d-%m-%Y"
-# session = AiohttpSession(proxy=proxy_url)
 
 database_location = "database/app_database.db"
-session = AiohttpSession()
 
-ADMINS = ["kazamabeks", "NUR_btuleev"]
+session = AiohttpSession(proxy=proxy_url)
+if dev_status:
+    print(f'dev status is {dev_status}, type is {type(dev_status)}')
+    session = AiohttpSession()
+
+
+ADMINS = ["kazamabeks", "nur_btuleev"]
 dp = Dispatcher()
 
 FIXED_PRICE_Lunch = 220
 FIXED_PRICE_Bakery = 60
 MAX_TEXT_LENGTH = 25
+#time limit for ordering and chaning order
+hour_time_limit = 14
+min_time_limit = 10
+ORDER_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM
+PAYMENT_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM
 
 class EditLunchMenuState(StatesGroup):
     waiting_for_menu_text = State()
@@ -64,6 +76,10 @@ class AdditionsState(StatesGroup):
 
 class ReviewState(StatesGroup):
     waiting_for_review = State()
+
+class RaitingState(StatesGroup):
+    selecting_lunch = State()
+    set_raiting = State()
 
 async def main() -> None:
     # Initialize Bot instance with default bot properties which will be passed to all API calls
