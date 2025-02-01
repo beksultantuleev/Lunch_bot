@@ -1,6 +1,2 @@
-1) payment - upload and cach 
-    upload photo almost done
-    add photo in database done
-    add lunch order limit
-    
-2) time limit on order and on removing order, payment order
+1) export excel file for admin
+2) translate and add reminders to order and pay lunch
