@@ -14,9 +14,8 @@ import re
 async def handle_editing_lunch_menu(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.message.answer(
         "Please send the lunch menu details in the format:\n"
-        "\n50 Manty 250"
-        "\n30 Pasta 300"
-        "\nBurger 500",
+        "\n10 Manty 250"
+        "\nPasta",
         parse_mode="Markdown",
     )
     await state.set_state(EditLunchMenuState.waiting_for_menu_text)
@@ -24,15 +23,11 @@ async def handle_editing_lunch_menu(callback_query: types.CallbackQuery, state: 
 
 @dp.message(EditLunchMenuState.waiting_for_menu_text)
 async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
-    if message.text and message.text.lower() == "/start":
-        await message.answer("❌ Upload process has been canceled.", reply_markup=main_menu_customer_keyboard)
-        await state.clear()
-        return
     input_text = message.text.strip()
     current_date = datetime.datetime.now().strftime(date_mask)  # Get current date
     menu_items = input_text.split("\n")  # Split by newlines
 
-    if not menu_items:
+    if not menu_items:  # Validate input menu text
         await message.answer("❌ The provided menu is empty. Please provide a valid menu.")
         return
 
@@ -48,31 +43,31 @@ async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
             # Step 2: Insert the new menu items
             for items_id, item in enumerate(menu_items):
                 item = item.strip()
-                if not item:
+                if not item:  # Skip empty or whitespace-only lines
                     continue
 
-                # Match format: "<available_amount> <item_name> <price>"
-                match = re.match(r'^(\d+)?\s*(.+?)\s*(\d+)?$', item)
+                # Extract item name and price (default to FIXED_PRICE_Lunch if not provided)
+                match = re.match(r'^(.+?)(?:\s+(\d+))?$', item)
                 if match:
-                    available_amount = int(match.group(1)) if match.group(1) else DEFAULT_AVAILABLE_AMOUNT
-                    item_name = match.group(2).strip()
-                    price = int(match.group(3)) if match.group(3) else FIXED_PRICE_Lunch
+                    item_name = match.group(1).strip()
+                    price = int(match.group(2)) if match.group(
+                        2) else FIXED_PRICE_Lunch
 
                     cursor.execute(
-                        "INSERT INTO Lunch (date, items_id, items, price, available_amount) VALUES (?, ?, ?, ?, ?)",
-                        (current_date, f'lunch{items_id}', item_name, price, available_amount),
+                        "INSERT INTO Lunch (date, items_id, items, price) VALUES (?, ?, ?, ?)",
+                        (current_date, f'lunch{items_id}', item_name, price),
                     )
 
             conn.commit()  # Commit all changes
 
             # Step 3: Notify the user
             menu_display = "\n".join(
-                f"- {match.group(2).strip()} (Available: {match.group(1) if match.group(1) else DEFAULT_AVAILABLE_AMOUNT}, Price: {match.group(3) if match.group(3) else FIXED_PRICE_Lunch})"
-                for match in (re.match(r'^(?:(\d+)\s+)?(.+?)\s+(\d+)?$', item.strip()) for item in menu_items)
+                f"- {match.group(1).strip()} (Price: {match.group(2) if match.group(2) else FIXED_PRICE_Lunch})"
+                for match in (re.match(r'^(.+?)(?:\s+(\d+))?$', item.strip()) for item in menu_items)
                 if match
             )
             await message.answer(
-                f"✅ Menu updated for {current_date}:\n{menu_display}",
+                f"✅ Menu reset for {current_date}:\n{menu_display}",
                 reply_markup=main_menu_admin_keyboard
             )
 
@@ -95,13 +90,13 @@ async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
             cursor = conn.cursor()
             # Use parameterized query to prevent SQL injection
             cursor.execute(
-                "SELECT items, price, available_amount FROM Lunch WHERE date = ? order by items", (current_date,))
+                "SELECT items, price FROM Lunch WHERE date = ? order by items", (current_date,))
             rows = cursor.fetchall()
 
         if rows:
             # Format the menu into a readable string
             menu = "\n".join(
-                [f"- ({available_amount}) x {item} (Price: {price})" for item, price, available_amount in rows])
+                [f"- {item} (Price: {price})" for item, price in rows])
             await callback_query.message.edit_text(f"```🍴 Today's Lunch Menu ({current_date}):\n{menu}```", reply_markup=main_menu_admin_keyboard, parse_mode="MarkdownV2")
         else:
             await callback_query.message.edit_text(f"⚠️ No lunch menu available for {current_date}.", reply_markup=main_menu_admin_keyboard)

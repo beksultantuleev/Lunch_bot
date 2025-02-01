@@ -12,20 +12,21 @@ CREATE TABLE IF NOT EXISTS Lunch (
     items_id TEXT NOT NULL,
     items TEXT NOT NULL,
     price REAL NOT NULL,
+    available_amount REAL NOT NULL,
     PRIMARY KEY (date, items_id, items)
 )
 ''')
 
 # Create Bakery table
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS Bakery (
-    date DATE NOT NULL,
-    items_id TEXT NOT NULL,
-    items TEXT NOT NULL,
-    price REAL NOT NULL,
-    PRIMARY KEY (date, items_id, items)
-)
-''')
+# cursor.execute('''
+# CREATE TABLE IF NOT EXISTS Bakery (
+#     date DATE NOT NULL,
+#     items_id TEXT NOT NULL,
+#     items TEXT NOT NULL,
+#     price REAL NOT NULL,
+#     PRIMARY KEY (date, items_id, items)
+# )
+# ''')
 
 # Create Customers_Order table
 cursor.execute('''

@@ -48,9 +48,7 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
                         InlineKeyboardButton(
                             text=f"{qnt} x {item[:MAX_TEXT_LENGTH]}={price} KGS", callback_data=f"select_{itemx_id}"
                         ),
-                        # InlineKeyboardButton(
-                        #     text="❌", callback_data=f"delete_{item}"
-                        # )
+                        
                     ]
                     for item, qnt, price, itemx_id in paied_rows_for_today
                 ])
@@ -66,9 +64,7 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
                         InlineKeyboardButton(
                             text=f"{qnt} x {item[:MAX_TEXT_LENGTH]}={price} KGS", callback_data=f"select_{itemx_id}"
                         ),
-                        # InlineKeyboardButton(
-                        #     text="❌", callback_data=f"delete_{item}"
-                        # )
+                        
                     ]
                     for item, qnt, price, itemx_id in unpaid_debt_rows
                 ])
@@ -139,9 +135,7 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
 @dp.callback_query(BasketState.viewing_basket)
 async def update_basket(callback_query: CallbackQuery, state: FSMContext):
     data = callback_query.data
-    # user_data = await state.get_data()
-    current_date = datetime.datetime.now().strftime(
-        date_mask)
+    current_date = datetime.datetime.now().strftime(date_mask)
     chat_id = callback_query.message.chat.id
 
     if data == "return_main_menu":
@@ -155,27 +149,50 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
     if data.startswith("delete_"):
         now = datetime.datetime.now().time()
         if now >= ORDER_TIME_LIMIT:
-            await callback_query.answer("⏳ Time is over! You can delete orders only before 11:00 AM.", show_alert=True)
+            await callback_query.answer(
+                "⏳ Time is over! You can delete orders only before 11:00 AM.", 
+                show_alert=True
+            )
             return
 
         item_id = data.split("_", 1)[1]
-        print(
-            f'this is item name: {item_id}\nchat_Id: {chat_id}\ndate: {current_date}')
+        print(f'Deleting item: {item_id} | Chat ID: {chat_id} | Date: {current_date}')
 
         try:
             with sqlite3.connect(database_location) as conn:
                 cursor = conn.cursor()
 
-                # Delete the item from the basket
+                # Get the quantity of the item to be restored
                 cursor.execute("""
-                    DELETE FROM Customers_Order
+                    SELECT ordered_quantity 
+                    FROM Customers_Order
                     WHERE date = ? AND chat_id = ? AND ordered_item_id = ?
                 """, (current_date, chat_id, item_id))
+                row = cursor.fetchone()
 
-                conn.commit()
-            await callback_query.answer("Item deleted from basket.")
-            # Refresh the basket view
-            await handle_my_basket(callback_query, state)
+                if row:
+                    ordered_quantity = row[0]
+
+                    # Restore available amount in the Lunch table
+                    cursor.execute("""
+                        UPDATE Lunch
+                        SET available_amount = available_amount + ?
+                        WHERE date = ? AND items_id = ?
+                    """, (ordered_quantity, current_date, item_id))
+
+                    # Delete the item from the basket
+                    cursor.execute("""
+                        DELETE FROM Customers_Order
+                        WHERE date = ? AND chat_id = ? AND ordered_item_id = ?
+                    """, (current_date, chat_id, item_id))
+
+                    conn.commit()
+
+                    await callback_query.answer("✅ Item removed from basket and stock updated.")
+                    # Refresh the basket view
+                    await handle_my_basket(callback_query, state)
+                else:
+                    await callback_query.answer("❌ Item not found in your basket.", show_alert=True)
 
         except sqlite3.Error as e:
             await callback_query.message.edit_text(f"❌ Database error: {e}")
@@ -184,7 +201,10 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
     if data == "pay_button":
         now = datetime.datetime.now().time()
         if now < PAYMENT_TIME_LIMIT:
-            await callback_query.answer(f"⏳ You can pay only after {hour_time_limit}:{min_time_limit}", show_alert=True)
+            await callback_query.answer(
+                f"⏳ You can pay only after {hour_time_limit}:{min_time_limit}", 
+                show_alert=True
+            )
             return
 
         cash_payment_btn = InlineKeyboardButton(
@@ -195,12 +215,12 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
 
         payment_keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [cash_payment_btn, card_payment_btn],
-            # [main_menu_button]
         ])
         payment_keyboard.inline_keyboard.append([InlineKeyboardButton(
             text="🔙 Main Menu", callback_data="return_main_menu")])
+
         await callback_query.message.edit_text(
-            "cash or card?:",
+            "💰 Select a payment method:",
             reply_markup=payment_keyboard
         )
         await state.set_state(BasketState.cash_or_card_qn)
@@ -251,7 +271,6 @@ async def handle_cash_payment(callback_query: types.CallbackQuery, state: FSMCon
 
 
 async def handle_receipt_upload(message: types.Message, state: FSMContext):
-    print("In upload receipt")
     chat_id = message.chat.id
 
     # Check for cancellation command

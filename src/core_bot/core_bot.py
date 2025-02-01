@@ -41,9 +41,10 @@ dp = Dispatcher()
 
 FIXED_PRICE_Lunch = 220
 FIXED_PRICE_Bakery = 60
+DEFAULT_AVAILABLE_AMOUNT = 100
 MAX_TEXT_LENGTH = 25
 #time limit for ordering and chaning order
-hour_time_limit = 14
+hour_time_limit = 17
 min_time_limit = 10
 ORDER_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM
 PAYMENT_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM

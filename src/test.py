@@ -1,33 +1,39 @@
 import sqlite3
+import datetime
 
+
+database_location = 'database/app_database.db'
 conn = sqlite3.connect("database/app_database.db")
 cursor = conn.cursor()
 
-# Corrected SQL query
-table_name = 'Customers_Order'
-# table_name ="Order_raiting"
-# table_name = 'Lunch'
-# table_name = 'Bakery'
-cursor.execute(f"SELECT * FROM {table_name}")
-# cursor.execute("SELECT * FROM Customers_Review")
-# cursor.execute("SELECT * FROM Bakery")
-rows = cursor.fetchall()
+date_mask = "%d-%m-%Y"
+current_date = datetime.datetime.now().strftime(date_mask)
+past_30_days = (datetime.datetime.now() -
+                datetime.timedelta(days=30)).strftime(date_mask)
 
-# Print all rows
-for row in rows:
-    print(row)
+with sqlite3.connect(database_location) as conn:
+    cursor = conn.cursor()
 
-conn.close()
+    # Fetch the top 20 highest-rated lunch items in the last 30 days
+    cursor.execute("""
+        SELECT ordered_item, 
+            COUNT(*) AS total_ratings, 
+            ROUND(AVG(raiting_score), 2) AS avg_rating
+        FROM Order_raiting
+        where date BETWEEN DATE('now', '-30 days') AND DATE('now') 
+        GROUP BY ordered_item
+        ORDER BY avg_rating DESC, total_ratings DESC
+        limit 20
+       ;
+    """,)
+#     cursor.execute("""
+#         SELECT * FROM Order_raiting 
+# WHERE date = DATE('now');
 
+#     """,)
 
-# with sqlite3.connect('database/app_database.db') as conn:
-#     cursor = conn.cursor()
-
-#     # Fetch the price of the item from the Menu table
-#     cursor.execute(
-#         "SELECT items FROM Lunch WHERE items_id = ?", ('lunch0',))
-#     item_name = cursor.fetchone()[0]
-#     print(item_name)
+    rows = cursor.fetchall()
+    print(rows)
 
 
 
