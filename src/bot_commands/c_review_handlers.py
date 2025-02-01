@@ -22,6 +22,10 @@ async def save_review(message: Message, state: FSMContext):
     chat_id = message.chat.id
     username = message.chat.username
 
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+
     try:
         # Insert or append the review into the database
         with sqlite3.connect(database_location) as conn:

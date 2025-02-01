@@ -32,6 +32,11 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     This handler receives messages with `/start` command
     """
     # await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!")
+    chat_id = message.chat.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+
+    start_keyboard = create_initial_buttons(chat_id, user_languages)
     cutomers_full_name = message.from_user.full_name
     await state.clear()
     await message.answer(hello_string.format(html.bold(cutomers_full_name)), reply_markup=start_keyboard)
@@ -42,6 +47,11 @@ async def command_cancel_handler(message: Message, state: FSMContext) -> None:
     """
     This handler receives messages with `/cancel` command
     """
+    chat_id = message.chat.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    start_keyboard = create_initial_buttons(chat_id, user_languages)
+
     current_state = await state.get_state()
     if current_state is None:
         await message.answer("You are not in any active state.")
@@ -111,14 +121,26 @@ async def start_callback_handler(callback_query: types.CallbackQuery, callback_d
     await callback_query.answer()  # Acknowledge the callback query
 
 
+@dp.message(Command("en"))
+async def set_language_en(message: Message):
+    chat_id = message.chat.id
+    user_languages[chat_id] = "en"  # Set language to English
+    keyboard = create_initial_buttons(chat_id, user_languages)
+
+    await message.reply("Language set to English!", reply_markup=keyboard)
 
 
-# # Message handler for receiving location
-# @dp.message(lambda message: message.location)
-# async def handle_location(message: Message):
-#     user_location = message.location
-#     latitude = user_location.latitude
-#     longitude = user_location.longitude
+@dp.message(Command("ru"))
+async def set_language_ru(message: Message):
+    chat_id = message.chat.id
+    user_languages[chat_id] = "ru"  # Set language to Russian
+    keyboard = create_initial_buttons(chat_id, user_languages)
+    await message.reply("Язык установлен на русский!", reply_markup=keyboard)
 
-#     # Remove the keyboard after location is shared
-#     await message.answer(f"We've successfully collected your location data. Thank you for sharing it! Latitude: {latitude}, Longitude: {longitude}. We'll use it to help resolve your issue", reply_markup=main_menu_customer_keyboard)
+
+@dp.message(Command("ky"))
+async def set_language_ky(message: Message):
+    chat_id = message.chat.id
+    user_languages[chat_id] = "ky"  # Set language to Kyrgyz
+    keyboard = create_initial_buttons(chat_id, user_languages)
+    await message.reply("Тил кыргыз тилине коюлду!", reply_markup=keyboard)

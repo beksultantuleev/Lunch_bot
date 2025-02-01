@@ -8,6 +8,11 @@ import datetime
 
 # ORDER Lunch
 async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMContext):
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     current_date = datetime.datetime.now().strftime(
         date_mask)
     now = datetime.datetime.now().time()
@@ -61,6 +66,11 @@ async def handle_order_lunch(callback_query: types.CallbackQuery, state: FSMCont
 
 @dp.callback_query(OrderLunchState.selecting_lunch)
 async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     current_date = datetime.datetime.now().strftime(
         date_mask)
     if callback_query.data == "return_main_menu":
@@ -100,6 +110,13 @@ async def confirm_order(callback_query: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(OrderLunchState.confirming_order)
 async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
+
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+
     data = await state.get_data()
     item_id = data.get("selected_item")
     chat_id = callback_query.message.chat.id
@@ -196,6 +213,11 @@ async def add_to_basket(callback_query: CallbackQuery, state: FSMContext):
 
 
 async def handle_showing_current_lunch_c_menu(callback_query: CallbackQuery):
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     current_date = datetime.datetime.now().strftime(
         date_mask)  
 
@@ -214,9 +236,9 @@ async def handle_showing_current_lunch_c_menu(callback_query: CallbackQuery):
                 # [f"- {item} (Price: {price})" for item, price in rows])
             await callback_query.message.edit_text(f"```🍴 Today's Lunch Menu ({current_date}):\n{menu}```", reply_markup=main_menu_customer_keyboard, parse_mode="MarkdownV2")
         else:
-            await callback_query.message.edit_text(f"⚠️ No lunch menu available for {current_date}.", reply_markup=main_menu_admin_keyboard)
+            await callback_query.message.edit_text(f"⚠️ No lunch menu available for {current_date}.", reply_markup=main_menu_customer_keyboard)
     except sqlite3.Error as e:
-        await callback_query.message.edit_text(f"❌ Database error: {e}", reply_markup=main_menu_admin_keyboard)
+        await callback_query.message.edit_text(f"❌ Database error: {e}", reply_markup=main_menu_customer_keyboard)
 
 # # bakery
 # async def handle_order_bakery(callback_query: types.CallbackQuery, state: FSMContext):

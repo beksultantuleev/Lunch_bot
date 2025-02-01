@@ -17,6 +17,11 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
     total_price = 0
     all_time_unpaid_total_price = 0
 
+
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+
     try:
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
@@ -134,6 +139,13 @@ async def handle_my_basket(callback_query: types.CallbackQuery, state: FSMContex
 
 @dp.callback_query(BasketState.viewing_basket)
 async def update_basket(callback_query: CallbackQuery, state: FSMContext):
+
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+    
     data = callback_query.data
     current_date = datetime.datetime.now().strftime(date_mask)
     chat_id = callback_query.message.chat.id
@@ -231,7 +243,12 @@ async def update_basket(callback_query: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(BasketState.cash_or_card_qn)
 async def handle_cash_payment(callback_query: types.CallbackQuery, state: FSMContext):
-    print('in cash handler')
+    # chat_id = message.chat.id
+    # chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+    # print('in cash handler')
     data = callback_query.data
     if data == "return_main_menu":
         await state.clear()
@@ -272,6 +289,10 @@ async def handle_cash_payment(callback_query: types.CallbackQuery, state: FSMCon
 
 async def handle_receipt_upload(message: types.Message, state: FSMContext):
     chat_id = message.chat.id
+    # chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
 
     # Check for cancellation command
     if message.text and message.text.lower() == "/start":

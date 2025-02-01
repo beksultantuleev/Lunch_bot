@@ -8,6 +8,11 @@ import datetime
 
 # raiting
 async def handle_rating(callback_query: types.CallbackQuery, state: FSMContext):
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
 
     now = datetime.datetime.now().time()
     if now < PAYMENT_TIME_LIMIT:
@@ -66,6 +71,11 @@ async def handle_rating(callback_query: types.CallbackQuery, state: FSMContext):
 @dp.callback_query(RaitingState.selecting_lunch)
 async def handle_rating_selection(callback_query: types.CallbackQuery, state: FSMContext):
     current_date = datetime.datetime.now().strftime(date_mask)
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
 
     if callback_query.data == "return_main_menu":
         await state.clear()
@@ -120,6 +130,9 @@ async def handle_rating_selection(callback_query: types.CallbackQuery, state: FS
 async def handle_rating_set(callback_query: types.CallbackQuery, state: FSMContext):
 
     chat_id = callback_query.message.chat.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     data = callback_query.data
 
     if data == "return_main_menu":
@@ -186,6 +199,11 @@ async def handle_rating_set(callback_query: types.CallbackQuery, state: FSMConte
 
 
 async def handle_showing_rating_menu(callback_query: CallbackQuery):
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
 
     try:
         with sqlite3.connect(database_location) as conn:

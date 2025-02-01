@@ -9,6 +9,11 @@ import datetime
 ######################Additions
 'garnish'
 async def handle_specify_additions(callback_query: types.CallbackQuery, state: FSMContext): 
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     now = datetime.datetime.now().time()
     if now > ORDER_TIME_LIMIT:
         await callback_query.answer(f"⏳ Order time is over! You can do it only before {hour_time_limit}:{min_time_limit}", show_alert=True)
@@ -58,6 +63,11 @@ async def handle_specify_additions(callback_query: types.CallbackQuery, state: F
 
 @dp.callback_query(AdditionsState.selecting_lunch)
 async def handle_addition_selection(callback_query: types.CallbackQuery, state: FSMContext):
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     current_date = datetime.datetime.now().strftime(
         date_mask)
     if callback_query.data == "return_main_menu":
@@ -101,6 +111,11 @@ async def handle_addition_selection(callback_query: types.CallbackQuery, state: 
         await callback_query.answer()
 
 async def save_additional_info(message: types.Message, state: FSMContext):
+    chat_id = message.chat.id
+    # chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     current_date = datetime.datetime.now().strftime(
         date_mask)
     # Get the user's input

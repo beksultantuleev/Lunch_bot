@@ -23,6 +23,12 @@ async def handle_editing_lunch_menu(callback_query: types.CallbackQuery, state: 
 
 @dp.message(EditLunchMenuState.waiting_for_menu_text)
 async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
+    chat_id = message.chat.id
+    # chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_admin_keyboard = create_admin_menu_buttons(chat_id, user_languages)
+
     input_text = message.text.strip()
     current_date = datetime.datetime.now().strftime(date_mask)  # Get current date
     menu_items = input_text.split("\n")  # Split by newlines
@@ -82,6 +88,11 @@ async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
 
 
 async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
+    # chat_id = message.chat.id
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_admin_keyboard = create_admin_menu_buttons(chat_id, user_languages)
     current_date = datetime.datetime.now().strftime(
         date_mask)  # Get current date in YYYY-MM-DD format
 
