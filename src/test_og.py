@@ -5,8 +5,8 @@ conn = sqlite3.connect("database/app_database.db")
 cursor = conn.cursor()
 
 # Corrected SQL query
-table_name = 'Customers_Order'
-# table_name = 'Customers_Review'
+# table_name = 'Customers_Order'
+table_name = 'Customers_Review'
 # table_name ="Order_raiting"
 # table_name = 'Lunch'
 # table_name = 'Bakery'

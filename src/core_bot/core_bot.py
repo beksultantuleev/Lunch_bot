@@ -17,6 +17,7 @@ import sqlite3
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 import datetime
+import nltk
 
 load_dotenv()
 
@@ -40,15 +41,38 @@ ADMINS = ["kazamabeks", "nur_btuleev"]  # "nur_btuleev"
 dp = Dispatcher()
 
 FIXED_PRICE_Lunch = 220
-FIXED_PRICE_Bakery = 60
+# FIXED_PRICE_Bakery = 60
 DEFAULT_AVAILABLE_AMOUNT = 100
 MAX_TEXT_LENGTH = 25
 # time limit for ordering and chaning order
-hour_time_limit = 14
-min_time_limit = 30
+hour_time_limit = 17
+min_time_limit = 11
 ORDER_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM
 PAYMENT_TIME_LIMIT = datetime.time(hour_time_limit, min_time_limit)  # 11:00 AM
 
+# Define the custom folder for NLTK data for word cloud
+nltk_data_folder = "raw_data/ntlk"  # Change this to your preferred path
+
+# Ensure the folder exists
+os.makedirs(nltk_data_folder, exist_ok=True)
+
+# Set the environment variable for NLTK
+nltk.data.path.append(nltk_data_folder)
+
+# Download stopwords to the custom folder
+nltk.download("stopwords", download_dir=nltk_data_folder)
+################
+
+# Configure logging
+logging.basicConfig(
+    filename="raw_data/bot.log",  # Log file name
+    filemode="a",  # Append mode
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+)
+
+# Example: Log bot startup
+logging.info("Bot is starting...")
 
 class EditLunchMenuState(StatesGroup):
     waiting_for_menu_text = State()
@@ -107,77 +131,63 @@ translation_dict = {
         "ky": "📍 Башкы меню"
     },
     "order_lunch_str": {
-        "en": "🍽️ Order a lunch",
-        "ru": "🍽️ Заказать обед",
-        "ky": "🍽️ Түшкү тамак заказ кылуу"
+        "en": "🍽️ Order",
+        "ru": "🍽️ Заказать",
+        "ky": "🍽️ Заказ кылуу"
     },
     "garnish_str": {
-        "en": "➕ Specify additions",
-        "ru": "➕ Указать добавки",
-        "ky": "➕ Кошумчаларды тандоо"
+        "en": "➕ Add garnish",
+        "ru": "➕ Добавить гарнир",
+        "ky": "➕ Гарнир кошуу"
     },
     "my_orders_str": {
-        "en": "🛒 My orders",
-        "ru": "🛒 Мои заказы",
-        "ky": "🛒 Менин заказдарым"
+        "en": "🛒 Orders",
+        "ru": "🛒 Заказы",
+        "ky": "🛒 Заказдар"
     },
     "lunch_rating_list_str": {
-        "en": "⭐ Lunch rating list",
-        "ru": "⭐ Рейтинг обедов",
-        "ky": "⭐ Түшкү тамактардын рейтинги"
+        "en": "📊 Ratings",
+        "ru": "📊 Рейтинг",
+        "ky": "📊 Рейтинг"
     },
     "rate_lunch_str": {
-        "en": "👍 Rate your lunch",
-        "ru": "👍 Оцените обед",
-        "ky": "👍 Түшкү тамагыңарды баалагыла"
+        "en": "👍 Rate",
+        "ru": "👍 Оценить",
+        "ky": "👍 Баалоо"
     },
     "leave_review_str": {
-        "en": "📝 Leave a review",
-        "ru": "📝 Оставить отзыв",
-        "ky": "📝 Пикир калтыруу"
+        "en": "📝 Review",
+        "ru": "📝 Отзыв",
+        "ky": "📝 Пикир"
     },
     "current_lunch_menu_str": {
-        "en": "📜 Current Lunch Menu",
-        "ru": "📜 Текущее меню",
-        "ky": "📜 Азыркы түшкү тамак менюсу"
+        "en": "📜 Menu",
+        "ru": "📜 Меню",
+        "ky": "📜 Меню"
     },
-    "reset_lunch_menu_str": {
-        "en": "🔄 Reset Lunch Menu",
-        "ru": "🔄 Сбросить меню",
-        "ky": "🔄 Түшкү тамак менюсун өчүрүү"
-    },
+
     "export_today_data_str": {
-        "en": "📤 Export today's data",
-        "ru": "📤 Экспорт данных за сегодня",
-        "ky": "📤 Бүгүнкү маалыматты экспорттоо"
+        "en": "📤 Export orders",
+        "ru": "📤 Экспорт заказов",
+        "ky": "📤 Заказдарды экспорттоо"
     },
     "export_all_data_str": {
-        "en": "📦 Export all data",
-        "ru": "📦 Экспорт всех данных",
-        "ky": "📦 Бардык маалыматты экспорттоо"
+        "en": "📦 Export all",
+        "ru": "📦 Экспорт всего",
+        "ky": "📦 Баарын экспорттоо"
     },
     # admin one
     "reset_lunch_menu_str": {
-        "en": "🔄 Reset Lunch Menu",
-        "ru": "🔄 Сбросить меню",
-        "ky": "🔄 Түшкү тамак менюсун тазалоо"
+        "en": "🔄 Reset menu",
+        "ru": "🔄 Сброс меню",
+        "ky": "🔄 Менюну тазалоо"
     },
-    "export_today_data_str": {
-        "en": "📤 Export today's data",
-        "ru": "📤 Экспорт данных за сегодня",
-        "ky": "📤 Бүгүнкү маалыматты экспорттоо"
-    },
-    "export_all_data_str": {
-        "en": "📦 Export all data",
-        "ru": "📦 Экспорт всех данных",
-        "ky": "📦 Бардык маалыматты экспорттоо"
-    },
+
     'hello_string': {
         "en": "👋 Hi, {}! Welcome to NUR Lunch Bot! \n\nPlease select an option below.\nTo change language, press:\n\n/ky Кыргызча\n\n/ru Русский\n\n/en English",
         "ru": "👋 Привет, {}! Добро пожаловать в NUR Lunch Bot! \n\nВыберите действие ниже.\nДля смены языка нажмите:\n\n/ky Кыргызча\n\n/ru Русский\n\n/en English",
         "ky": "👋 Салам, {}! NUR Lunch Bot'ко кош келиңиз! \n\nТөмөндөгү параметрлерди тандаңыз.\nТилди өзгөртүү үчүн басыңыз:\n\n/ky Кыргызча\n\n/ru Русский\n\n/en English"
     },
-
     'lier_string': {
         "en": "🚫 {}, you are not an administrator!",
         "ru": "🚫 {}, вы не администратор!",
@@ -439,6 +449,17 @@ translation_dict = {
         "en": "✅ Menu updated for {}",
         "ru": "✅ Меню обновлено для {}",
         "ky": "✅ {} үчүн меню жаңыртылды"
+    },
+    # tested above
+    'word_cloud_btn_str': {
+        "en": "🌥️ Word cloud",
+        "ru": "🌥️ Облако слов",
+        "ky": "🌥️ Сөз булуту"
+    },
+    'export_review_btn_str': {
+        "en": "📤 Export review",
+        "ru": "📤 Экспорт отзывов",
+        "ky": "📤 Пикирлерди экспорттоо"
     },
 
 

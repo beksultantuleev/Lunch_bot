@@ -21,13 +21,14 @@ class Actions:
     administrator_action = 'administrator_action'
     export_today_excel_action = 'export_today_excel_action'
     export_all_excel_action = 'export_all_excel_action'
+    export_review_excel_action = 'export_review_excel_action'
+    export_review_wc_action = 'export_review_wc_action'
 
     # current_bakekry_action = 'current_bakekry_action'
     # edit_bakekry_action = 'edit_bakekry_action'
     current_lunch_menu_action = 'current_lunch_menu_action'
     current_lunch_menu_c_action = 'current_lunch_menu_c_action'
     edit_lunch_menu_action = 'edit_lunch_menu_action'
-
 
 
 
@@ -65,6 +66,7 @@ def create_customer_menu_buttons(chat_id: int, user_languages: dict) -> InlineKe
     rate_lunch_str = get_translation("rate_lunch_str", selected_language)
     leave_review_str = get_translation("leave_review_str", selected_language)
     current_lunch_menu_str = get_translation("current_lunch_menu_str", selected_language)
+    word_cloud_btn_str = get_translation("word_cloud_btn_str", selected_language)
 
     main_menu_button = InlineKeyboardButton(
         text=main_menu_str, callback_data=StartCallbackData(action=Actions.return_main_menu_action).pack())
@@ -90,6 +92,9 @@ def create_customer_menu_buttons(chat_id: int, user_languages: dict) -> InlineKe
 
     leave_review_btn = InlineKeyboardButton(
         text=leave_review_str, callback_data=StartCallbackData(action=Actions.leave_review_action).pack())
+    
+    word_cloud_review_btn = InlineKeyboardButton(
+        text=word_cloud_btn_str, callback_data=StartCallbackData(action=Actions.export_review_wc_action).pack())
 
     current_lunch_menu_c_btn = InlineKeyboardButton(
         text=current_lunch_menu_str, callback_data=StartCallbackData(action=Actions.current_lunch_menu_c_action).pack())
@@ -97,17 +102,16 @@ def create_customer_menu_buttons(chat_id: int, user_languages: dict) -> InlineKe
     # New inline keyboard with multiple buttons
     main_menu_customer_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [current_lunch_menu_c_btn],
-        [order_lunch_btn, ],
-        [specify_additions_btn],
+        [order_lunch_btn, specify_additions_btn],
+        # [specify_additions_btn],
         [my_orders_btn,],
-        [lunch_rating_list_btn,],
-        [rate_your_lunch_btn],
-        [leave_review_btn,],
+        [lunch_rating_list_btn,rate_your_lunch_btn],
+        # [rate_your_lunch_btn],
+        [leave_review_btn, word_cloud_review_btn,],
+        # [word_cloud_review_btn,],
         [main_menu_button]
     ])
     return main_menu_customer_keyboard
-
-
 
 
 def create_admin_menu_buttons(chat_id: int, user_languages: dict) -> InlineKeyboardMarkup:
@@ -119,6 +123,7 @@ def create_admin_menu_buttons(chat_id: int, user_languages: dict) -> InlineKeybo
     export_today_data_str = get_translation("export_today_data_str", selected_language)
     export_all_data_str = get_translation("export_all_data_str", selected_language) 
     main_menu_str = get_translation("main_menu_str", selected_language)
+    export_review_btn_str = get_translation("export_review_btn_str", selected_language)
 
 
     reset_lunch_menu_btn = InlineKeyboardButton(
@@ -133,6 +138,9 @@ def create_admin_menu_buttons(chat_id: int, user_languages: dict) -> InlineKeybo
     export_all_excel_btn = InlineKeyboardButton(
         text=export_all_data_str, callback_data=StartCallbackData(action=Actions.export_all_excel_action).pack())
     
+    export_all_review_btn = InlineKeyboardButton(
+        text=export_review_btn_str, callback_data=StartCallbackData(action=Actions.export_review_excel_action).pack())
+    
     main_menu_button = InlineKeyboardButton(
         text=main_menu_str, callback_data=StartCallbackData(action=Actions.return_main_menu_action).pack())
 
@@ -142,7 +150,8 @@ def create_admin_menu_buttons(chat_id: int, user_languages: dict) -> InlineKeybo
         # [reset_lunch_menu_btn, reset_bakery_menu_btn],
         [reset_lunch_menu_btn,],
         [export_today_excel_btn, export_all_excel_btn],
-        [main_menu_button]
+        [export_all_review_btn],
+        [main_menu_button],
     ])
     return main_menu_admin_keyboard
 

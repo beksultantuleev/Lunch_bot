@@ -132,9 +132,11 @@ async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
         await callback_query.message.edit_text(f"❌ Database error: {e}", reply_markup=main_menu_admin_keyboard)
 
 
-
-
 async def handle_today_export_orders(callback_query: CallbackQuery):
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_admin_keyboard = create_admin_menu_buttons(chat_id, user_languages)
     current_date = datetime.datetime.now().strftime(date_mask)  
     file_name = f"raw_data/export_file/Orders_{current_date}.xlsx"
 
@@ -203,16 +205,14 @@ async def handle_today_export_orders(callback_query: CallbackQuery):
 
         # Send the Excel file
         file_to_send = FSInputFile(file_name)
-        await callback_query.message.answer_document(file_to_send,)
+        await callback_query.message.answer_document(file_to_send, reply_markup=main_menu_admin_keyboard)
         os.remove(file_name)
 
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}")
 
 
-
 async def handle_all_export_orders(callback_query: CallbackQuery):
-    # chat_id = message.chat.id
     chat_id = callback_query.from_user.id
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
@@ -247,8 +247,51 @@ async def handle_all_export_orders(callback_query: CallbackQuery):
 
         # Send the file
         file_to_send = FSInputFile(file_name)
-        await callback_query.message.answer_document(file_to_send,)
+        await callback_query.message.answer_document(file_to_send, reply_markup=main_menu_admin_keyboard)
         os.remove(file_name)
 
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}", reply_markup=main_menu_admin_keyboard)
+
+
+async def handle_review_export(callback_query: CallbackQuery):
+    """Exports customer reviews to an Excel file and sends it via Telegram."""
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+    main_menu_admin_keyboard = create_admin_menu_buttons(chat_id, user_languages)
+    no_top_lunch_listing_str = get_translation("no_top_lunch_listing_str", selected_language)
+
+    current_date = datetime.datetime.now().strftime(date_mask)
+    file_name = f"raw_data/export_file/Customer_Reviews_{current_date}.xlsx"
+
+    try:
+        with sqlite3.connect(database_location) as conn:
+            cursor = conn.cursor()
+
+            # Fetch all customer reviews
+            cursor.execute("""
+                SELECT date, username, review
+                FROM Customers_Review
+            """)
+            rows = cursor.fetchall()
+
+        # Convert data to Pandas DataFrame
+        df = pd.DataFrame(rows, columns=["Date", "Username", "Review"])
+
+        if df.empty:
+            await callback_query.message.answer(no_top_lunch_listing_str,)
+            return
+
+        # Save to Excel
+        df.to_excel(file_name, sheet_name="Reviews", index=False)
+
+        # Send the Excel file
+        file_to_send = FSInputFile(file_name)
+        await callback_query.message.answer_document(file_to_send, )
+
+        os.remove(file_name)
+
+    except sqlite3.Error as e:
+        await callback_query.message.answer(f"❌ Database error: {e}")
+

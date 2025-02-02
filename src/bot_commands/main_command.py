@@ -76,6 +76,7 @@ CUSTOMER_ACTIONS = {
     Actions.rate_your_lunch_action: {'handler': handle_rating, 'state': True},
     Actions.lunch_rating_list_action: {'handler': handle_showing_rating_menu, 'state': False},
     Actions.current_lunch_menu_c_action: {'handler': handle_showing_current_lunch_c_menu, 'state': False},
+    Actions.export_review_wc_action: {'handler': handle_word_cloud_review, 'state': False},
 }
 
 ADMIN_ACTIONS = {
@@ -85,9 +86,8 @@ ADMIN_ACTIONS = {
     Actions.current_lunch_menu_action: {'handler': handle_showing_current_lunch_menu, 'state': False},
     Actions.export_today_excel_action: {'handler': handle_today_export_orders, 'state': False},
     Actions.export_all_excel_action: {'handler': handle_all_export_orders, 'state': False},
+    Actions.export_review_excel_action: {'handler': handle_review_export, 'state': False},
     # Actions.current_bakekry_action: {'handler': handle_showing_current_bakery_menu, 'state': False},
-    # Add more admin-specific actions here
-    # "other_admin_action": other_admin_action,
 }
 
 
