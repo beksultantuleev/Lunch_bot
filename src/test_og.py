@@ -5,11 +5,21 @@ conn = sqlite3.connect("database/app_database.db")
 cursor = conn.cursor()
 
 # Corrected SQL query
-# table_name = 'Customers_Order'
+table_name = 'Customers_Order'
+# table_name = 'Customers_Review'
 # table_name ="Order_raiting"
-table_name = 'Lunch'
+# table_name = 'Lunch'
 # table_name = 'Bakery'
-cursor.execute(f"SELECT * FROM {table_name}")
+# cursor.execute(f"SELECT * FROM {table_name} where date BETWEEN DATE('now', '-30 days') AND DATE('now')  ")
+cursor.execute(f"""
+    SELECT * FROM {table_name} 
+    WHERE STRFTIME('%Y-%m-%d', 
+                   SUBSTR(date, 7, 4) || '-' || 
+                   SUBSTR(date, 4, 2) || '-' || 
+                   SUBSTR(date, 1, 2)) 
+          BETWEEN DATE('now', '-30 days') AND DATE('now')
+""")
+
 # cursor.execute("SELECT * FROM Customers_Review")
 # cursor.execute("SELECT * FROM Bakery")
 rows = cursor.fetchall()

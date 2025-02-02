@@ -30,7 +30,6 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     """
     This handler receives messages with `/start` command
     """
-    
 
     # await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!")
     chat_id = message.chat.id
@@ -38,7 +37,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     selected_language = user_languages.get(chat_id, default_lang)
     
     hello_string = get_translation("hello_string", selected_language)
-    lier_string = get_translation("hello_string", selected_language)
+    # lier_string = get_translation("lier_string", selected_language)
     start_keyboard = create_initial_buttons(chat_id, user_languages)
     cutomers_full_name = message.from_user.full_name
     await state.clear()

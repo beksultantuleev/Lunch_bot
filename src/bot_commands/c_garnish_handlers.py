@@ -14,9 +14,16 @@ async def handle_specify_additions(callback_query: types.CallbackQuery, state: F
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+
+    order_time_warning_str = get_translation("order_time_warning_str", selected_language)
+    main_menu_str = get_translation("main_menu_str", selected_language)
+    empty_basket_info_str = get_translation("empty_basket_info_str", selected_language)
+    select_following_options_str = get_translation("select_following_options_str", selected_language)
+
+
     now = datetime.datetime.now().time()
     if now > ORDER_TIME_LIMIT:
-        await callback_query.answer(f"⏳ Order time is over! You can do it only before {hour_time_limit}:{min_time_limit}", show_alert=True)
+        await callback_query.answer(order_time_warning_str.format(hour_time_limit, min_time_limit), show_alert=True)
         return
     current_date = datetime.datetime.now().strftime(
         date_mask)
@@ -28,8 +35,6 @@ async def handle_specify_additions(callback_query: types.CallbackQuery, state: F
                 "SELECT ordered_item_id, ordered_item, ordered_quantity, additional_info FROM Customers_Order WHERE date = ? AND chat_id = ?", (current_date, chat_id))
             rows = cursor.fetchall()
             if rows:
-              
-
                 # Create dynamic lunch options
                 keyboard = InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -38,22 +43,19 @@ async def handle_specify_additions(callback_query: types.CallbackQuery, state: F
                                 text=f"{row[1][:MAX_TEXT_LENGTH]}..." if len(row[1]) > MAX_TEXT_LENGTH else f"{row[1]}",
                                 callback_data=f"select_{row[0]}"
                             ),
-                        #     InlineKeyboardButton(
-                        #     text="additions", callback_data=f"specify_additions_{row[0][:MAX_TEXT_LENGTH]}"
-                        # )
                         ]
                         for row in rows
                     ]
                 )
                 keyboard.inline_keyboard.append([InlineKeyboardButton(
-                    text="🔙 Main Menu", callback_data="return_main_menu")])
+                    text=main_menu_str, callback_data="return_main_menu")])
                 await callback_query.message.edit_text(
-                    f"Specify additions for {current_date}:",
+                    select_following_options_str,
                     reply_markup=keyboard
                 )
                 await state.set_state(AdditionsState.selecting_lunch)
             else:
-                await callback_query.message.edit_text(f"⚠️ your basket is empty for {current_date}.", reply_markup=main_menu_customer_keyboard)
+                await callback_query.message.edit_text(empty_basket_info_str.format(current_date), reply_markup=main_menu_customer_keyboard)
                 await callback_query.answer()
                 await state.clear()
     except sqlite3.Error as e:
@@ -68,12 +70,16 @@ async def handle_addition_selection(callback_query: types.CallbackQuery, state: 
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+
+    customer_menu_options_str = get_translation("customer_menu_options_str", selected_language)
+    add_garnish_str = get_translation("add_garnish_str", selected_language)
+
     current_date = datetime.datetime.now().strftime(
         date_mask)
     if callback_query.data == "return_main_menu":
         await state.clear()
         await callback_query.message.edit_text(
-            "🔙 Back to the main menu. Choose an option:",
+            customer_menu_options_str,
             reply_markup=main_menu_customer_keyboard
         )
         return
@@ -86,36 +92,42 @@ async def handle_addition_selection(callback_query: types.CallbackQuery, state: 
         await state.update_data(selected_item=item_id)
         with sqlite3.connect(database_location) as conn:
             cursor = conn.cursor()
-            print(f'this is item ID: {item_id}')
+            # print(f'this is item ID: {item_id}')
 
             # Fetch the price of the item from the Menu table
             cursor.execute(
                 """
                 SELECT items FROM Lunch WHERE items_id = ? and date = ?
-                UNION ALL 
-                SELECT items FROM Bakery WHERE items_id = ? and date = ?
-                """, (item_id, current_date, item_id, current_date,)  # Pass item_id twice
+                """, (item_id, current_date,)  # Pass item_id twice
             )
 
             item_name = cursor.fetchone()[0]
-            # else:
-            #     cursor.execute(
-            #         "SELECT items FROM Bakery WHERE items_id = ?", (item_id,))
-            #     item_name = cursor.fetchone()[0]
-            print(f'item_name is {item_name}')
+
+            # print(f'item_name is {item_name}')
 
 
         # Prompt the user to enter additional info
-        await callback_query.message.edit_text(f"Please type the additions for {item_name}:")
+        await callback_query.message.edit_text(add_garnish_str.format(item_name))
         await state.set_state(AdditionsState.waiting_for_addition)
         await callback_query.answer()
 
 async def save_additional_info(message: types.Message, state: FSMContext):
+
+    
+
     chat_id = message.chat.id
     # chat_id = callback_query.from_user.id
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+    confirm_garnish_str = get_translation("confirm_garnish_str", selected_language)
+    canceled_str = get_translation("canceled_str", selected_language)
+
+    if message.text and message.text.lower() == "/start":
+        await message.answer(canceled_str, reply_markup=main_menu_customer_keyboard)
+        await state.clear()
+        return
+    
     current_date = datetime.datetime.now().strftime(
         date_mask)
     # Get the user's input
@@ -134,9 +146,8 @@ async def save_additional_info(message: types.Message, state: FSMContext):
             cursor.execute(
                 """
                 SELECT items FROM Lunch WHERE items_id = ? and date = ?
-                UNION ALL 
-                SELECT items FROM Bakery WHERE items_id = ? and date = ?
-                """, (item_id, current_date, item_id, current_date,)  # Pass item_id twice
+
+                """, (item_id, current_date,)  # Pass item_id twice
             )
 
             item_name = cursor.fetchone()[0]
@@ -150,7 +161,7 @@ async def save_additional_info(message: types.Message, state: FSMContext):
             conn.commit()
 
         # Notify the user
-        await message.answer(f"Additional info for {item_name} has been updated. Thank you!", reply_markup=main_menu_customer_keyboard)
+        await message.answer(confirm_garnish_str.format(item_name), reply_markup=main_menu_customer_keyboard)
     except sqlite3.Error as e:
         await message.answer(f"❌ Failed to save additional info. Error: {e}", reply_markup=main_menu_customer_keyboard)
 

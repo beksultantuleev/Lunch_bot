@@ -16,11 +16,13 @@ import xlsxwriter
 
 
 async def handle_editing_lunch_menu(callback_query: types.CallbackQuery, state: FSMContext):
+    chat_id = callback_query.from_user.id
+    user_languages.setdefault(chat_id, default_lang)
+    selected_language = user_languages.get(chat_id, default_lang)
+
+    reset_lunch_menu_info_str = get_translation("reset_lunch_menu_info_str", selected_language)
     await callback_query.message.answer(
-        "Please send the lunch menu details in the format:\n"
-        "\n50 Manty 250"
-        "\n30 Pasta 300"
-        "\nBurger 500",
+        reset_lunch_menu_info_str,
         parse_mode="Markdown",
     )
     await state.set_state(EditLunchMenuState.waiting_for_menu_text)
@@ -34,9 +36,12 @@ async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_admin_keyboard = create_admin_menu_buttons(chat_id, user_languages)
+    canceled_str = get_translation("canceled_str", selected_language)
+    error_empty_given_menu_str = get_translation("error_empty_given_menu_str", selected_language)
+    menu_successfully_updated_str = get_translation("menu_successfully_updated_str", selected_language)
 
     if message.text and message.text.lower() == "/start":
-        await message.answer("❌ Upload process has been canceled.", reply_markup=main_menu_admin_keyboard)
+        await message.answer(canceled_str, reply_markup=main_menu_admin_keyboard)
         await state.clear()
         return
     input_text = message.text.strip()
@@ -44,7 +49,7 @@ async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
     menu_items = input_text.split("\n")  # Split by newlines
 
     if not menu_items:
-        await message.answer("❌ The provided menu is empty. Please provide a valid menu.")
+        await message.answer(error_empty_given_menu_str)
         return
 
     try:
@@ -76,14 +81,13 @@ async def handle_reset_lunch_menu(message: types.Message, state: FSMContext):
 
             conn.commit()  # Commit all changes
 
-            # Step 3: Notify the user
             menu_display = "\n".join(
                 f"- {match.group(2).strip()} (Available: {match.group(1) if match.group(1) else DEFAULT_AVAILABLE_AMOUNT}, Price: {match.group(3) if match.group(3) else FIXED_PRICE_Lunch})"
                 for match in (re.match(r'^(?:(\d+)\s+)?(.+?)\s+(\d+)?$', item.strip()) for item in menu_items)
                 if match
             )
             await message.answer(
-                f"✅ Menu updated for {current_date}:\n{menu_display}",
+                f"{menu_successfully_updated_str.format(current_date)}:\n{menu_display}",
                 reply_markup=main_menu_admin_keyboard
             )
 
@@ -103,6 +107,9 @@ async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_admin_keyboard = create_admin_menu_buttons(chat_id, user_languages)
+    no_lunch_info_str = get_translation("no_lunch_info_str", selected_language)
+    current_lunch_menu_str = get_translation("current_lunch_menu_str", selected_language)
+
     current_date = datetime.datetime.now().strftime(
         date_mask)  
 
@@ -117,89 +124,14 @@ async def handle_showing_current_lunch_menu(callback_query: CallbackQuery):
         if rows:
             # Format the menu into a readable string
             menu = "\n".join(
-                [f"- ({available_amount}) x {item} (Price: {price})" for item, price, available_amount in rows])
-            await callback_query.message.edit_text(f"```🍴 Today's Lunch Menu ({current_date}):\n{menu}```", reply_markup=main_menu_admin_keyboard, parse_mode="MarkdownV2")
+                [f"- ({int(available_amount)}) x {item} (Price: {price})" for item, price, available_amount in rows])
+            await callback_query.message.edit_text(f"```\n{current_lunch_menu_str} ({current_date}):\n{menu}```", reply_markup=main_menu_admin_keyboard, parse_mode="MarkdownV2")
         else:
-            await callback_query.message.edit_text(f"⚠️ No lunch menu available for {current_date}.", reply_markup=main_menu_admin_keyboard)
+            await callback_query.message.edit_text(no_lunch_info_str.format(current_date), reply_markup=main_menu_admin_keyboard)
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}", reply_markup=main_menu_admin_keyboard)
-    # await callback_query.message.edit_text(
-    #     "Performing another admin action!",
-    #     reply_markup=main_menu_admin_keyboard,
-    # )
 
 
-#export file
-
-
-
-# async def handle_today_export_orders(callback_query: CallbackQuery):
-#     'almost works'
-#     current_date = datetime.datetime.now().strftime(date_mask)  # Use YYYY-MM-DD format
-#     file_name = f"Orders_{current_date}.xlsx"
-
-#     try:
-#         with sqlite3.connect(database_location) as conn:
-#             cursor = conn.cursor()
-
-#             # Fetch required columns including screenshot
-#             cursor.execute("""
-#                 SELECT date, username, ordered_item, additional_info, 
-#                        ordered_quantity, unit_price, total_price, 
-#                        CASE WHEN is_paid = 1 THEN 'Paid' ELSE 'Unpaid' END as is_paid, 
-#                        payment_type, screenshot
-#                 FROM Customers_Order
-#                 ORDER BY date DESC, username ASC
-#             """)
-#             rows = cursor.fetchall()
-
-#         # Prepare data for Excel
-#         excel_data = []
-#         image_data = []  # To store image BLOBs
-
-#         for row in rows:
-#             date, username, item, info, qty, price, total, is_paid, payment_type, screenshot = row
-#             excel_data.append([date, username, item, info, qty, price, total, is_paid, payment_type])
-#             image_data.append(screenshot)  # Store image data
-
-#         # Convert to DataFrame
-#         df = pd.DataFrame(excel_data, columns=[
-#             "Date", "Username", "Ordered Item", "Additional Info",
-#             "Quantity", "Unit Price", "Total Price", "Payment Status", "Payment Type"
-#         ])
-
-#         # Save to Excel with images
-#         with pd.ExcelWriter(file_name, engine="xlsxwriter") as writer:
-#             df.to_excel(writer, sheet_name="Orders", index=False)
-
-#             workbook = writer.book
-#             worksheet = writer.sheets["Orders"]
-
-#             # Set column width for the screenshot
-#             image_column = len(df.columns)  # Next column for images
-#             worksheet.set_column(image_column, image_column, 15)  # Adjust width for images
-#             worksheet.write(0, image_column, "Screenshot")  # Add header
-
-#             row_num = 1  # Start from row 2 (row 1 is header)
-#             for screenshot in image_data:
-#                 if screenshot:
-#                     image_stream = BytesIO(screenshot)  # Convert BLOB to image
-#                     image_name = f"Screenshot_{row_num}.png"
-                    
-#                     # Insert image inside the cell and adjust row height
-#                     worksheet.set_row(row_num, 80)  # Set row height for image
-#                     worksheet.insert_image(
-#                         row_num, image_column, image_name,
-#                         {'image_data': image_stream, 'x_offset': 2, 'y_offset': 2,
-#                          'x_scale': 0.5, 'y_scale': 0.5})  # Resize image to fit cell
-#                 row_num += 1
-
-#         # Send the Excel file
-#         file_to_send = FSInputFile(file_name)
-#         await callback_query.message.answer_document(file_to_send)
-
-#     except sqlite3.Error as e:
-#         await callback_query.message.edit_text(f"❌ Database error: {e}")
 
 
 async def handle_today_export_orders(callback_query: CallbackQuery):
@@ -316,6 +248,7 @@ async def handle_all_export_orders(callback_query: CallbackQuery):
         # Send the file
         file_to_send = FSInputFile(file_name)
         await callback_query.message.answer_document(file_to_send,)
+        os.remove(file_name)
 
     except sqlite3.Error as e:
         await callback_query.message.edit_text(f"❌ Database error: {e}", reply_markup=main_menu_admin_keyboard)

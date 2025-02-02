@@ -13,16 +13,18 @@ async def handle_rating(callback_query: types.CallbackQuery, state: FSMContext):
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+    rate_time_warning_str = get_translation("rate_time_warning_str", selected_language)
+    main_menu_str = get_translation("main_menu_str", selected_language)
+    rate_lunch_str = get_translation("rate_lunch_str", selected_language)
+    empty_basket_info_str = get_translation("empty_basket_info_str", selected_language)
 
     now = datetime.datetime.now().time()
     if now < PAYMENT_TIME_LIMIT:
-        await callback_query.answer(f"⏳ You can rate only after {hour_time_limit}:{min_time_limit}", show_alert=True)
+        await callback_query.answer(rate_time_warning_str.format(hour_time_limit, min_time_limit), show_alert=True)
         return
 
     current_date = datetime.datetime.now().strftime(date_mask)
     chat_id = callback_query.message.chat.id
-
-    
 
     try:
         with sqlite3.connect(database_location) as conn:
@@ -48,17 +50,17 @@ async def handle_rating(callback_query: types.CallbackQuery, state: FSMContext):
                 # Add "Return to Menu" button
                 keyboard.inline_keyboard.append([
                     InlineKeyboardButton(
-                        text="🔙 Main Menu", callback_data="return_main_menu")
+                        text=main_menu_str, callback_data="return_main_menu")
                 ])
 
                 await callback_query.message.edit_text(
-                    f"Rate your lunch for {current_date}:",
+                    f"{rate_lunch_str} {current_date}:",
                     reply_markup=keyboard
                 )
                 await state.set_state(RaitingState.selecting_lunch)
             else:
                 await callback_query.message.edit_text(
-                    f"⚠️ Your basket is empty for {current_date}.",
+                    empty_basket_info_str.format(current_date),
                     reply_markup=main_menu_customer_keyboard
                 )
                 await state.clear()
@@ -67,20 +69,24 @@ async def handle_rating(callback_query: types.CallbackQuery, state: FSMContext):
         await state.clear()
     await callback_query.answer()
 
-
 @dp.callback_query(RaitingState.selecting_lunch)
 async def handle_rating_selection(callback_query: types.CallbackQuery, state: FSMContext):
     current_date = datetime.datetime.now().strftime(date_mask)
-    # chat_id = message.chat.id
     chat_id = callback_query.from_user.id
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+    customer_menu_options_str = get_translation("customer_menu_options_str", selected_language)
+    bad_rating_str = get_translation("bad_rating_str", selected_language)
+    good_rating_str = get_translation("good_rating_str", selected_language)
+    awesome_rating_str = get_translation("awesome_rating_str", selected_language)
+    main_menu_str = get_translation("main_menu_str", selected_language)
+    rate_item_str = get_translation("rate_item_str", selected_language)
 
     if callback_query.data == "return_main_menu":
         await state.clear()
         await callback_query.message.edit_text(
-            "🔙 Back to the main menu. Choose an option:",
+            customer_menu_options_str,
             reply_markup=main_menu_customer_keyboard
         )
         return
@@ -99,7 +105,6 @@ async def handle_rating_selection(callback_query: types.CallbackQuery, state: FS
 
             if row:
                 item_name = row[0]
-
                 # Store item_id in FSM context
                 await state.update_data(selected_item_id=item_id, selected_item=item_name)
 
@@ -107,24 +112,23 @@ async def handle_rating_selection(callback_query: types.CallbackQuery, state: FS
                 rate_keyboard = InlineKeyboardMarkup(inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text="👎 Bad", callback_data='rate_bad'),
+                            text=bad_rating_str, callback_data='rate_bad'),
                         InlineKeyboardButton(
-                            text="🙂 Good", callback_data='rate_good'),
+                            text=good_rating_str, callback_data='rate_good'),
                         InlineKeyboardButton(
-                            text="😍 Awesome", callback_data='rate_awesome'),
+                            text=awesome_rating_str, callback_data='rate_awesome'),
                     ],
                     [InlineKeyboardButton(
-                        text="🔙 Main Menu", callback_data="return_main_menu")]
+                        text=main_menu_str, callback_data="return_main_menu")]
                 ])
 
                 await callback_query.message.edit_text(
-                    f"Please rate **{item_name}**:",
+                    rate_item_str.format(item_name),
                     reply_markup=rate_keyboard
                 )
                 await state.set_state(RaitingState.set_raiting)
 
         await callback_query.answer()
-
 
 @dp.callback_query(RaitingState.set_raiting)
 async def handle_rating_set(callback_query: types.CallbackQuery, state: FSMContext):
@@ -134,11 +138,14 @@ async def handle_rating_set(callback_query: types.CallbackQuery, state: FSMConte
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
     data = callback_query.data
+    customer_menu_options_str = get_translation("customer_menu_options_str", selected_language)
+    no_item_for_rating_str = get_translation("no_item_for_rating_str", selected_language)
+    rating_complete_str = get_translation("rating_complete_str", selected_language)
 
     if data == "return_main_menu":
         await state.clear()
         await callback_query.message.edit_text(
-            "🔙 Back to the main menu. Choose an option:",
+            customer_menu_options_str,
             reply_markup=main_menu_customer_keyboard
         )
         return
@@ -160,7 +167,7 @@ async def handle_rating_set(callback_query: types.CallbackQuery, state: FSMConte
 
             if not selected_item_id or not selected_item:
                 await callback_query.message.edit_text(
-                    "❌ No item selected for rating.",
+                    no_item_for_rating_str,
                     reply_markup=main_menu_customer_keyboard
                 )
                 await state.clear()
@@ -185,7 +192,7 @@ async def handle_rating_set(callback_query: types.CallbackQuery, state: FSMConte
 
             # Confirmation message
             await callback_query.message.edit_text(
-                f"✅ Thank you for your rating! You rated **{selected_item}** with {rating_score} ⭐.",
+                rating_complete_str.format(selected_item, rating_score),
                 reply_markup=main_menu_customer_keyboard
             )
             await state.clear()
@@ -194,9 +201,7 @@ async def handle_rating_set(callback_query: types.CallbackQuery, state: FSMConte
             await callback_query.message.edit_text(f"❌ Database error: {e}")
             await state.clear()
 
-
 ################
-
 
 async def handle_showing_rating_menu(callback_query: CallbackQuery):
     # chat_id = message.chat.id
@@ -204,6 +209,8 @@ async def handle_showing_rating_menu(callback_query: CallbackQuery):
     user_languages.setdefault(chat_id, default_lang)
     selected_language = user_languages.get(chat_id, default_lang)
     main_menu_customer_keyboard = create_customer_menu_buttons(chat_id, user_languages)
+    top_lunch_listing_str = get_translation("top_lunch_listing_str", selected_language)
+    no_top_lunch_listing_str = get_translation("no_top_lunch_listing_str", selected_language)
 
     try:
         with sqlite3.connect(database_location) as conn:
@@ -226,7 +233,7 @@ async def handle_showing_rating_menu(callback_query: CallbackQuery):
             # print(rows)
 
             if rows:
-                rating_text = "```\n📊 TOP Lunch Items (Last 30 Days):\n\n"
+                rating_text = f"```\n{top_lunch_listing_str}\n\n"
                 for index, (item, count, avg_rating) in enumerate(rows, start=1):
                     rating_text += f"{index}. {item} ⭐ {avg_rating} ({count} votes)\n"
                 rating_text += "```"
@@ -235,7 +242,7 @@ async def handle_showing_rating_menu(callback_query: CallbackQuery):
 
             else:
                 await callback_query.message.edit_text(
-                    "```\n⚠️ No ratings available in the last 30 days.\n```",
+                    f"```\n{no_top_lunch_listing_str}\n```",
                     reply_markup=main_menu_customer_keyboard, parse_mode="MarkdownV2"
                 )
 

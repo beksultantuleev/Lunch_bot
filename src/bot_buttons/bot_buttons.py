@@ -30,55 +30,6 @@ class Actions:
 
 
 
-####################
-# customer_button = InlineKeyboardButton(
-#     text="I'm a customer", callback_data=StartCallbackData(action=Actions.CUSTOMER).pack())
-
-# administrator_button = InlineKeyboardButton(
-#     text="I'm an administrator", callback_data=StartCallbackData(action=Actions.administrator_action).pack())
-
-# start_keyboard = InlineKeyboardMarkup(
-#     inline_keyboard=[[customer_button, administrator_button]])
-
-main_menu_button = InlineKeyboardButton(
-    text="Main menu", callback_data=StartCallbackData(action=Actions.return_main_menu_action).pack())
-
-# # CUSTOMERS options
-# order_lunch_btn = InlineKeyboardButton(
-#     text="Order a lunch", callback_data=StartCallbackData(action=Actions.order_lunch_action).pack())
-
-# # order_bakery_btn = InlineKeyboardButton(
-# #     text="Bakery", callback_data=StartCallbackData(action=Actions.order_bakery_action).pack())
-
-# specify_additions_btn = InlineKeyboardButton(
-#     text="Specify additions", callback_data=StartCallbackData(action=Actions.specify_additions_action).pack())
-
-# my_orders_btn = InlineKeyboardButton(
-#     text="My orders", callback_data=StartCallbackData(action=Actions.my_basket_action).pack())
-
-# lunch_rating_list_btn = InlineKeyboardButton(
-#     text="Lunch rating list", callback_data=StartCallbackData(action=Actions.lunch_rating_list_action).pack())
-
-# rate_your_lunch_btn = InlineKeyboardButton(
-#     text="Rate your lunch", callback_data=StartCallbackData(action=Actions.rate_your_lunch_action).pack())
-
-
-# leave_review_btn = InlineKeyboardButton(
-#     text="Leave a review", callback_data=StartCallbackData(action=Actions.leave_review_action).pack())
-
-# current_lunch_menu_c_btn = InlineKeyboardButton(
-#     text="Current Lunch Menu", callback_data=StartCallbackData(action=Actions.current_lunch_menu_c_action).pack())
-
-# # New inline keyboard with multiple buttons
-# main_menu_customer_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-#     # [order_lunch_btn, order_bakery_btn],
-#     [order_lunch_btn, current_lunch_menu_c_btn],
-#     [specify_additions_btn],
-#     [my_orders_btn,],
-#     [lunch_rating_list_btn, rate_your_lunch_btn],
-#     [leave_review_btn,],
-#     [main_menu_button]
-# ])
 
 def create_initial_buttons(chat_id: int, user_languages: dict) -> InlineKeyboardMarkup:
     user_languages.setdefault(chat_id, default_lang)
@@ -145,57 +96,18 @@ def create_customer_menu_buttons(chat_id: int, user_languages: dict) -> InlineKe
 
     # New inline keyboard with multiple buttons
     main_menu_customer_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        # [order_lunch_btn, order_bakery_btn],
-        [order_lunch_btn, current_lunch_menu_c_btn],
+        [current_lunch_menu_c_btn],
+        [order_lunch_btn, ],
         [specify_additions_btn],
         [my_orders_btn,],
-        [lunch_rating_list_btn, rate_your_lunch_btn],
+        [lunch_rating_list_btn,],
+        [rate_your_lunch_btn],
         [leave_review_btn,],
         [main_menu_button]
     ])
     return main_menu_customer_keyboard
 
-# # payment
-# cash_payment_btn = InlineKeyboardButton(
-#     text="Cash", callback_data='pay_cash')
 
-# card_payment_btn = InlineKeyboardButton(
-#     text="Card", callback_data='pay_card')
-
-
-# payment_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-#     [cash_payment_btn, card_payment_btn],
-#     [main_menu_button]
-# ])
-
-
-# ADMIN BUTTONS
-
-# current_bakery_menu_btn = InlineKeyboardButton(
-#     text="Current Bakery Menu", callback_data=StartCallbackData(action=Actions.current_bakekry_action).pack())
-
-# reset_lunch_menu_btn = InlineKeyboardButton(
-#     text="Reset Lunch Menu", callback_data=StartCallbackData(action=Actions.edit_lunch_menu_action).pack())
-
-# # reset_bakery_menu_btn = InlineKeyboardButton(
-# #     text="Reset Bakery Menu", callback_data=StartCallbackData(action=Actions.edit_bakekry_action).pack())
-# current_lunch_menu_btn = InlineKeyboardButton(
-#     text="Current Lunch Menu", callback_data=StartCallbackData(action=Actions.current_lunch_menu_action).pack())
-
-# export_today_excel_btn = InlineKeyboardButton(
-#     text="Export todays data", callback_data=StartCallbackData(action=Actions.export_today_excel_action).pack())
-
-# export_all_excel_btn = InlineKeyboardButton(
-#     text="Export All data", callback_data=StartCallbackData(action=Actions.export_all_excel_action).pack())
-
-# main_menu_admin_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-#     # [current_lunch_menu_btn, current_bakery_menu_btn],
-#     [current_lunch_menu_btn,],
-#     # [reset_lunch_menu_btn, reset_bakery_menu_btn],
-#     [reset_lunch_menu_btn,],
-#     [export_today_excel_btn, export_all_excel_btn],
-#     [main_menu_button]
-# ])
 
 
 def create_admin_menu_buttons(chat_id: int, user_languages: dict) -> InlineKeyboardMarkup:
