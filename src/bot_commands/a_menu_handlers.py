@@ -205,7 +205,7 @@ async def handle_today_export_orders(callback_query: CallbackQuery):
 
         # Send the Excel file
         file_to_send = FSInputFile(file_name)
-        await callback_query.message.answer_document(file_to_send, reply_markup=main_menu_admin_keyboard)
+        await callback_query.message.answer_document(file_to_send)
         os.remove(file_name)
 
     except sqlite3.Error as e:
@@ -247,7 +247,7 @@ async def handle_all_export_orders(callback_query: CallbackQuery):
 
         # Send the file
         file_to_send = FSInputFile(file_name)
-        await callback_query.message.answer_document(file_to_send, reply_markup=main_menu_admin_keyboard)
+        await callback_query.message.answer_document(file_to_send)
         os.remove(file_name)
 
     except sqlite3.Error as e:
