@@ -22,7 +22,7 @@ import nltk
 load_dotenv()
 
 TOKEN = os.environ.get('TOKEN')
-dev_status = bool(os.environ.get('DEVELOPING'))
+dev_status = os.environ.get('DEVELOPING')
 
 link = 'https://t.me/NURlunchBot'
 proxy_url = 'http://172.27.129.0:3128'
@@ -32,7 +32,7 @@ date_mask = "%d-%m-%Y"
 database_location = "database/app_database.db"
 
 session = AiohttpSession(proxy=proxy_url)
-if dev_status:
+if dev_status == "True":
     print(f'dev status is {dev_status}, type is {type(dev_status)}')
     session = AiohttpSession()
 
